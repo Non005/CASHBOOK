@@ -1,0 +1,99 @@
+<!-- views/cashbook.html — Cashbook Template -->
+
+<div class="space-y-5 view-panel">
+  <!-- Top 3 KPI Cards: ဝင်ငွေ၊ ထွက်ငွေ၊ လက်ကျန် -->
+  <div class="kpi-grid-container" id="cash-kpi-cards">
+    <div class="stats-card">
+      <div style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+        <i class="fa-solid fa-arrow-down-long"></i>
+      </div>
+      <div>
+        <p>ဝင်ငွေ (INCOME)</p>
+        <h3 style="color: #34d399;" id="cash-total-income">0 ကျပ်</h3>
+      </div>
+    </div>
+
+    <div class="stats-card">
+      <div style="background: rgba(244, 63, 94, 0.15); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.3);">
+        <i class="fa-solid fa-arrow-up-long"></i>
+      </div>
+      <div>
+        <p>ထွက်ငွေ (EXPENSE)</p>
+        <h3 style="color: #f87171;" id="cash-total-expense">0 ကျပ်</h3>
+      </div>
+    </div>
+
+    <div class="stats-card">
+      <div style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+        <i class="fa-solid fa-wallet"></i>
+      </div>
+      <div>
+        <p>လက်ကျန် (BALANCE)</p>
+        <h3 style="color: #fbbf24;" id="cash-net-balance">0 ကျပ်</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Bar: Search, Date Filter (From/To), Refresh, Export, New Add -->
+  <div class="control-bar-wrapper">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; flex: 1;">
+      <!-- Search Box -->
+      <div style="position: relative; min-width: 180px; flex: 1;">
+        <input type="text" id="cash-search-input" placeholder="အကြောင်းအရာ / ဦးဆောင်သူ / ခေါင်းစဉ်..." 
+          style="width: 100%; padding-left: 2.2rem; background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; color: #f1f5f9; font-size: 0.8rem; outline: none; height: 38px;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.75rem;"></i>
+      </div>
+
+      <!-- From: dd mm yyyy -->
+      <div style="display: flex; align-items: center; gap: 0.3rem;">
+        <span style="font-size: 0.72rem; color: #94a3b8; font-weight: bold;">From:</span>
+        <input type="date" id="cash-from-date" style="background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.6rem; color: #cbd5e1; font-size: 0.75rem; padding: 0.35rem 0.5rem; outline: none; height: 38px;">
+      </div>
+
+      <!-- To: dd mm yyyy -->
+      <div style="display: flex; align-items: center; gap: 0.3rem;">
+        <span style="font-size: 0.72rem; color: #94a3b8; font-weight: bold;">To:</span>
+        <input type="date" id="cash-to-date" style="background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.6rem; color: #cbd5e1; font-size: 0.75rem; padding: 0.35rem 0.5rem; outline: none; height: 38px;">
+      </div>
+
+      <button onclick="triggerCashSearch()" class="btn-control" style="background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4); padding: 0.5rem 0.85rem; height: 38px;">
+        <i class="fa-solid fa-filter"></i> ရှာမည်
+      </button>
+    </div>
+
+    <!-- Actions: Refresh, Export, New Add -->
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+      <button onclick="renderCashbook(1, '', '', '')" class="btn-control btn-control-refresh" title="မူလအတိုင်း ပြန်လည်ရယူပါ">
+        <i class="fa-solid fa-rotate"></i> Refresh
+      </button>
+      <button onclick="exportCashbookToExcel()" class="btn-control btn-control-export" title="Excel ထုတ်ယူမည်">
+        <i class="fa-solid fa-file-excel"></i> Export
+      </button>
+      <button onclick="openCashModal()" class="btn-control btn-control-add" style="height: 38px;">
+        <i class="fa-solid fa-plus"></i> + New Add
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Head: စဉ် | ရက်စွဲ | ခေါင်းစဉ် | အကြောင်းအရာ | ဝင်ငွေ | ထွက်ငွေ | လက်ကျန် | ဦးဆောင်သူ | Action -->
+  <div class="table-scroll-container">
+    <table>
+      <thead>
+        <tr style="background-color: #080d1a; border-bottom: 2px solid rgba(245, 158, 11, 0.3); color: #fbbf24; font-size: 0.72rem; font-weight: 800;">
+          <th style="padding: 12px 14px; white-space: nowrap;">စဉ်</th>
+          <th style="padding: 12px 14px; white-space: nowrap;">ရက်စွဲ</th>
+          <th style="padding: 12px 14px; white-space: nowrap;">ခေါင်းစဉ်</th>
+          <th style="padding: 12px 14px; white-space: nowrap;">အကြောင်းအရာ</th>
+          <th style="padding: 12px 14px; white-space: nowrap; text-align: right;">ဝင်ငွေ</th>
+          <th style="padding: 12px 14px; white-space: nowrap; text-align: right;">ထွက်ငွေ</th>
+          <th style="padding: 12px 14px; white-space: nowrap; text-align: right;">လက်ကျန်</th>
+          <th style="padding: 12px 14px; white-space: nowrap;">ဦးဆောင်သူ</th>
+          <th class="sticky-action" style="padding: 12px 14px; white-space: nowrap; text-align: center;">ACTION</th>
+        </tr>
+      </thead>
+      <tbody id="cashbook-table-tbody">
+        <!-- JS မှ Render သွားမည် -->
+      </tbody>
+    </table>
+  </div>
+</div>
