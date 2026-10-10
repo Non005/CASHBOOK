@@ -1,0 +1,88 @@
+<!-- views/yogi.html — Yogi Stages Management Template --> 
+
+<div class="space-y-5 view-panel">
+  <!-- Top 3 KPI Cards Grid -->
+  <div class="kpi-grid-container" id="yogi-kpi-cards">
+    <div class="stats-card">
+      <div style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+        <i class="fa-solid fa-users"></i>
+      </div>
+      <div>
+        <p>TOTAL ACTIVE</p>
+        <h3 style="color: #fbbf24;" id="yogi-total-active">0 ဦး</h3>
+      </div>
+    </div>
+    <div class="stats-card">
+      <div style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
+        <i class="fa-solid fa-mars"></i>
+      </div>
+      <div>
+        <p>ACTIVE MALE</p>
+        <h3 style="color: #818cf8;" id="yogi-active-male">0 ဦး</h3>
+      </div>
+    </div>
+    <div class="stats-card">
+      <div style="background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3);">
+        <i class="fa-solid fa-venus"></i>
+      </div>
+      <div>
+        <p>ACTIVE FEMALE</p>
+        <h3 style="color: #f472b6;" id="yogi-active-female">0 ဦး</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Control Bar -->
+  <div class="control-bar-wrapper">
+    <div style="position: relative; flex: 1; min-width: 240px; max-width: 360px;">
+      <input type="text" id="yogi-search-input" onkeyup="filterYogiTable()" placeholder="အမည် / ဖုန်း / လိပ်စာ ရှာဖွေရန်..." 
+        style="width: 100%; padding-left: 2.2rem; background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; color: #f1f5f9; font-size: 0.8rem; outline: none;">
+      <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.75rem;"></i>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+      <button onclick="renderYogiStage(1, 1, '')" class="btn-control btn-control-refresh" title="ပြန်လည်ရယူပါ">
+        <i class="fa-solid fa-rotate"></i> Refresh
+      </button>
+
+      <button onclick="exportYogiToExcel(1)" class="btn-control btn-control-export" title="Excel ထုတ်ယူမည်">
+        <i class="fa-solid fa-file-excel"></i> Export Excel
+      </button>
+
+      <label class="btn-control btn-control-import" style="cursor: pointer;">
+        <i class="fa-solid fa-file-import" style="color: #fbbf24;"></i> Import
+        <input type="file" id="yogi-file-import" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelImport(event)">
+      </label>
+
+      <button id="btn-add-yogi" onclick="openYogiModal()" class="btn-control btn-control-add">
+        <i class="fa-solid fa-plus"></i> + Add New
+      </button>
+    </div>
+  </div>
+
+  <!-- Yogi Table (Updated 13 Columns) -->
+  <div class="table-scroll-container">
+    <table>
+      <thead>
+        <tr>
+          <th>စဉ်</th>
+          <th>စတင်ရက်စွဲ</th>
+          <th>ချိန်းရက်စွဲ</th>
+          <th>အမည်</th>
+          <th style="text-align: center;">အသက်</th>
+          <th>အလုပ်အကိုင်</th>
+          <th>ဖုန်းနံပါတ်</th>
+          <th>နေရပ်လိပ်စာ</th>
+          <th>မိတ်ဆက်ယောဂီ</th>
+          <th>EMAIL</th>
+          <th style="text-align: center;">GENDER</th>
+          <th style="text-align: center;">STATUS</th>
+          <th class="sticky-action" style="text-align: center;">ACTION</th>
+        </tr>
+      </thead>
+      <tbody id="yogi-table-tbody">
+        <!-- JS မှတစ်ဆင့် Dynamic Render သွားမည် -->
+      </tbody>
+    </table>
+  </div>
+</div>
