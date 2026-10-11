@@ -16,6 +16,7 @@ const STATIC_ASSETS = [
   "./js/leaders.js",
   "./js/yogi.js",
   "./js/yogi-summary.js",
+  "./js/cashbook.js",
   "./js/app.js"
 ];
 
