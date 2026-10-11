@@ -62,13 +62,11 @@ function statCardsYogiHtml(total, male, female) {
 
 /**
  * Render Yogi Stage View
- * Limit: 30 items per page with Pagination
  */
 async function renderYogiStage(stageId, page = 1, searchVal = "") {
   const container = document.getElementById("view-container");
   if (!container) return;
 
-  // 💡 Admin ခွင့်ပြုချက် စစ်ဆေးခြင်း
   const currentUser = window.AppState ? window.AppState.currentUser : localStorage.getItem("yogi_user_name");
   const isAdmin = currentUser === "Admin";
 
@@ -137,7 +135,7 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
         </div>
       </div>
 
-      <!-- 💡 Table Scroll Container (စတင်ရက်စွဲ၊ ချိန်းရက်စွဲ၊ အလုပ်အကိုင် ကော်လံများ အစဉ်လိုက်) -->
+      <!-- Table Scroll Container -->
       <div class="table-scroll-container">
         <table>
           <thead>
@@ -183,10 +181,16 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
                 <td class="sticky-action" style="text-align: center; white-space: nowrap;">
                   <div style="display: flex; gap: 6px; justify-content: center;">
                     <button onclick="openYogiModal(${stageId}, ${y.id})" class="btn-action-icon btn-action-edit" title="ပြင်ဆင်မည်"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button onclick="postYogiToNextStage(${y.id}, ${stageId})" class="btn-action-icon btn-action-post" title="${stageId === 7 ? 'ယောဂီ စာရင်းဟောင်းသို့ ရွှေ့မည် (Post)' : 'နောက်တစ်ဆင့်သို့ ရွှေ့မည် (Post)'}"><i class="fa-solid fa-paper-plane"></i></button>
+                    
+                    <!-- 💡 အဆင့် ၁ မှ ၇ အထိသာ Post (လေယာဉ်ပျံ/ထီး) ခလုတ် ပြသပေးထားပါသည် -->
+                    ${stageId < 8 ? `
+                      <button onclick="postYogiToNextStage(${y.id}, ${stageId})" class="btn-action-icon btn-action-post" title="${stageId === 7 ? 'ယောဂီ စာရင်းဟောင်းသို့ ရွှေ့မည် (Post)' : 'နောက်တစ်ဆင့်သို့ ရွှေ့မည် (Post)'}">
+                        <i class="fa-solid fa-paper-plane"></i>
+                      </button>
+                    ` : ''}
+
                     <button onclick="toggleYogiStatus(${y.id}, '${y.status}', ${stageId})" class="btn-action-icon ${y.status === 'Active' ? 'btn-action-inactive' : 'btn-action-active'}" title="${y.status === 'Active' ? 'Inactive ပြုလုပ်မည်' : 'Active ပြုလုပ်မည်'}"><i class="fa-solid ${y.status === 'Active' ? 'fa-user-xmark' : 'fa-user-check'}"></i></button>
                     
-                    <!-- 💡 Admin ဝင်မှသာ Delete Icon ခလုတ် ပေါ်မည် -->
                     ${isAdmin ? `
                       <button onclick="deleteYogi(${y.id}, ${stageId})" class="btn-action-icon btn-action-delete" title="ဖျက်ပါ"><i class="fa-solid fa-trash"></i></button>
                     ` : ''}
@@ -219,7 +223,7 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
 }
 
 /**
- * 💡 Centered Pop-up Modal Window with "အလုပ်အကိုင်" Field
+ * Centered Modal Window
  */
 function openYogiModal(stageId, yogiId = null) {
   let existingData = null;
@@ -264,7 +268,6 @@ function openYogiModal(stageId, yogiId = null) {
             </div>
           </div>
 
-          <!-- 💡 "အလုပ်အကိုင်" Input Field -->
           <div>
             <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">အလုပ်အကိုင်</label>
             <input type="text" id="modal-occupation" value="${isEdit ? window.escapeHtml(existingData.occupation || '') : ''}" placeholder="ဥပမာ - ဝန်ထမ်း / စီးပွားရေး...">
@@ -298,7 +301,7 @@ function openYogiModal(stageId, yogiId = null) {
 
           <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
             <button type="button" onclick="closeYogiModal()" class="btn-control btn-control-refresh" style="padding: 0.5rem 1rem;">မလုပ်တော့ပါ</button>
-            <button type="submit" class="btn-control btn-control-add" style="padding: 0.5rem 1.25rem;">သိမ်းဆည်းမည်</button>
+            <button type="submit" id="yogi-submit-btn" class="btn-control btn-control-add" style="padding: 0.5rem 1.25rem;">သိမ်းဆည်းမည်</button>
           </div>
         </form>
       </div>
@@ -323,8 +326,14 @@ function closeYogiModal() {
   if (modal) modal.remove();
 }
 
+/**
+ * 💡 Save Form with Error Feedback & Button Lock
+ */
+let isYogiSubmitting = false;
 async function saveYogiForm(event, stageId, editId = null) {
   event.preventDefault();
+  if (isYogiSubmitting) return;
+
   const name = document.getElementById("modal-name").value.trim();
   const gender = document.getElementById("modal-gender").value;
   const age = document.getElementById("modal-age").value.trim();
@@ -334,13 +343,21 @@ async function saveYogiForm(event, stageId, editId = null) {
   const introducer = document.getElementById("modal-introducer").value.trim();
   const email = document.getElementById("modal-email").value.trim();
   const regDate = document.getElementById("modal-reg-date") ? document.getElementById("modal-reg-date").value : getFormattedToday();
+  const submitBtn = document.getElementById("yogi-submit-btn");
 
   if (!name) {
     window.showToast("ERROR", "ယောဂီအမည် ရိုက်ထည့်ပါ");
     return;
   }
 
+  isYogiSubmitting = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = "0.5";
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> သိမ်းဆည်းနေပါသည်...`;
+  }
   window.toggleLoading(true);
+
   try {
     const payload = {
       id: editId || undefined,
@@ -360,12 +377,25 @@ async function saveYogiForm(event, stageId, editId = null) {
     const action = editId ? "updateYogi" : "saveYogi";
     const res = await window.callApi(action, payload);
 
-    if (res.success) {
+    if (res && res.success) {
       window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ယောဂီအသစ် သိမ်းဆည်းပြီးပါပြီ။");
       closeYogiModal();
       renderYogiStage(stageId);
+    } else {
+      window.showToast("ERROR", (res && res.message) || "ဆာဗာတွင် သိမ်းဆည်း၍ မရပါ");
     }
-  } catch (e) { console.error(e); } finally { window.toggleLoading(false); }
+  } catch (e) {
+    console.error(e);
+    window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
+  } finally {
+    isYogiSubmitting = false;
+    window.toggleLoading(false);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = "1";
+      submitBtn.innerHTML = `သိမ်းဆည်းမည်`;
+    }
+  }
 }
 
 async function toggleYogiStatus(id, currentStatus, stageId) {
@@ -380,13 +410,23 @@ async function toggleYogiStatus(id, currentStatus, stageId) {
       regDate: nextStatus === 'Active' ? newDate : undefined
     });
 
-    if (res.success) {
+    if (res && res.success) {
       window.showToast("SUCCESS", nextStatus === 'Active' ? `Active ပြုလုပ်ပြီး ချိန်းရက်စွဲ (${newDate}) ဖြင့် အပေါ်သို့ ပို့လိုက်ပါပြီ။` : "Inactive ပြုလုပ်ပြီး အောက်သို့ ရွှေ့လိုက်ပါပြီ။");
       renderYogiStage(stageId);
+    } else {
+      window.showToast("ERROR", (res && res.message) || "Status ပြောင်း၍ မရပါ");
     }
-  } catch (e) { console.error(e); } finally { window.toggleLoading(false); }
+  } catch (e) { 
+    console.error(e);
+    window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
+  } finally { 
+    window.toggleLoading(false); 
+  }
 }
 
+/**
+ * 💡 ပြင်ဆင်ထားသော Post Function (ရွှေ့လိုက်သည်နှင့် မျက်နှာပြင်မှ ပျောက်သွားအောင် ချက်ချင်း Refresh လုပ်ပေးသည်)
+ */
 async function postYogiToNextStage(id, stageId) {
   const isLast = stageId === 7;
   const msg = isLast ? "ဤယောဂီအား 'ယောဂီ စာရင်းဟောင်း (Alumni)' သို့ ရွှေ့ရန် သေချာပါသလား။" : "ဤယောဂီအား နောက်တစ်ဆင့်သို့ တိုးမြှင့် (Post) ရန် သေချာပါသလား။";
@@ -396,11 +436,18 @@ async function postYogiToNextStage(id, stageId) {
   window.toggleLoading(true);
   try {
     const res = await window.callApi("postYogi", { id, postDate: getFormattedToday() });
-    if (res.success) {
+    if (res && res.success) {
       window.showToast("SUCCESS", isLast ? "ယောဂီ စာရင်းဟောင်းသို့ အောင်မြင်စွာ ရွှေ့လိုက်ပါပြီ။" : "နောက်တစ်ဆင့်သို့ အောင်မြင်စွာ တိုးမြှင့်လိုက်ပါပြီ။");
-      renderYogiStage(stageId);
+      renderYogiStage(stageId); // ချက်ချင်း ဇယား Refresh ဖြစ်ပြီး ပျောက်သွားမည်
+    } else {
+      window.showToast("ERROR", (res && res.message) || "ရွှေ့ပြောင်း၍ မရပါ");
     }
-  } catch (e) { console.error(e); } finally { window.toggleLoading(false); }
+  } catch (e) { 
+    console.error(e); 
+    window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
+  } finally { 
+    window.toggleLoading(false); 
+  }
 }
 
 async function deleteYogi(id, stageId) {
@@ -408,11 +455,18 @@ async function deleteYogi(id, stageId) {
   window.toggleLoading(true);
   try {
     const res = await window.callApi("deleteYogi", { id });
-    if (res.success) {
+    if (res && res.success) {
       window.showToast("SUCCESS", "ဖျက်ပြီးပါပြီ။");
       renderYogiStage(stageId);
+    } else {
+      window.showToast("ERROR", (res && res.message) || "ဖျက်၍မရပါ");
     }
-  } catch (e) { console.error(e); } finally { window.toggleLoading(false); }
+  } catch (e) { 
+    console.error(e); 
+    window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
+  } finally { 
+    window.toggleLoading(false); 
+  }
 }
 
 function exportYogiToExcel(stageId) {
@@ -468,9 +522,11 @@ function handleExcelImport(e, stageId) {
 
       window.toggleLoading(true);
       window.callApi("importYogi", { level: stageId, rows }).then(res => {
-        if (res.success) {
+        if (res && res.success) {
           window.showToast("SUCCESS", `${res.count || rows.length} ဦး Import အောင်မြင်ပါသည်။`);
           renderYogiStage(stageId);
+        } else {
+          window.showToast("ERROR", (res && res.message) || "Import မအောင်မြင်ပါ");
         }
       }).finally(() => { window.toggleLoading(false); });
     } catch (err) {
