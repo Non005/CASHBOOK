@@ -41,8 +41,8 @@
     const prodUrl = localStorage.getItem("prod_api_url");
     if (prodUrl) return prodUrl.replace(/\/$/, "");
     
-    // Production Cloudflare Worker API Endpoint
-    return "https://yogi-list.kotuntunwin1985.workers.dev";
+    // 💡 Production Cloudflare Worker API Endpoint အသစ်သို့ ပြင်ဆင်ထားပါသည်
+    return "https://yogi-list.pathana.workers.dev";
   }
 
   function getLevelById(id) {
