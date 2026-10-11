@@ -1,78 +1,117 @@
 <!-- views/dashboard.html — Dashboard Template --> 
 
 <div class="space-y-6 view-panel">
-  <!-- Top 3 KPI Cards -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="dashboard-kpi-cards">
-    <div class="stats-card">
-      <div class="bg-amber-500/10 text-amber-400 border border-amber-500/20">
-        <i class="fa-solid fa-users"></i>
+  
+  <!-- 💡 ၁။ ပင်မစာမျက်နှာထိပ်ရှိ Tab ခလုတ် ၂ ခု (ယောဂီ စာရင်း vs ငွေစာရင်း) -->
+  <div class="flex gap-2 bg-[#0c1220] p-1.5 rounded-2xl border border-amber-500/25 w-fit">
+    <button onclick="switchDashboardTab('yogi')" id="tab-btn-yogi"
+      class="px-5 py-2 text-xs font-black rounded-xl cursor-pointer transition flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20">
+      <i class="fa-solid fa-users"></i>
+      <span>ယောဂီ စာရင်း</span>
+    </button>
+
+    <button onclick="switchDashboardTab('cash')" id="tab-btn-cash"
+      class="px-5 py-2 text-xs font-black rounded-xl cursor-pointer transition flex items-center gap-2 text-slate-400 hover:text-white">
+      <i class="fa-solid fa-wallet"></i>
+      <span>ငွေစာရင်း</span>
+    </button>
+  </div>
+
+  <!-- 💡 ၂။ Top 3 KPI Cards Container (Tab အလိုက် ဝင်ငွေ/ထွက်ငွေ သို့မဟုတ် ယောဂီစာရင်း အလိုအလျောက် ပြောင်းလဲမည့် နေရာ) -->
+  <div id="dash-kpi-container">
+    <div class="kpi-grid-container">
+      <div class="stats-card">
+        <div class="bg-amber-500/15 text-amber-400 border border-amber-500/30">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <div>
+          <p>TOTAL ACTIVE</p>
+          <h3 class="text-amber-400 font-mono" id="dash-total-active">0 ဦး</h3>
+        </div>
       </div>
-      <div>
-        <p>TOTAL ACTIVE</p>
-        <h3 class="text-amber-400" id="dash-total-active">0 ဦး</h3>
+      
+      <div class="stats-card">
+        <div class="bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+          <i class="fa-solid fa-mars"></i>
+        </div>
+        <div>
+          <p>ACTIVE MALE</p>
+          <h3 class="text-indigo-400 font-mono" id="dash-total-male">0 ဦး</h3>
+        </div>
       </div>
-    </div>
-    
-    <div class="stats-card">
-      <div class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-        <i class="fa-solid fa-mars"></i>
-      </div>
-      <div>
-        <p>ACTIVE MALE</p>
-        <h3 class="text-indigo-400" id="dash-total-male">0 ဦး</h3>
-      </div>
-    </div>
-    
-    <div class="stats-card">
-      <div class="bg-pink-500/10 text-pink-400 border border-pink-500/20">
-        <i class="fa-solid fa-venus"></i>
-      </div>
-      <div>
-        <p>ACTIVE FEMALE</p>
-        <h3 class="text-pink-400" id="dash-total-female">0 ဦး</h3>
+      
+      <div class="stats-card">
+        <div class="bg-pink-500/15 text-pink-400 border border-pink-500/30">
+          <i class="fa-solid fa-venus"></i>
+        </div>
+        <div>
+          <p>ACTIVE FEMALE</p>
+          <h3 class="text-pink-400 font-mono" id="dash-total-female">0 ဦး</h3>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Grid: Mindfulness Reminder (Left) + Breakdown Table (Right) -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-    <!-- Mindfulness Reminder Card -->
-    <div class="space-y-2">
+  <!-- 💡 ၃။ Grid Layout: ဘယ်ဘက် (စာအုပ်ပုံ + Mindfulness) နှင့် ညာဘက် (ဇယား) -->
+  <div class="dash-grid-container" style="align-items: stretch;">
+    
+    <!-- ဘယ်ဘက်ခြမ်း: စာအုပ်မျက်နှာဖုံး + Mindfulness Reminder -->
+    <div class="flex flex-col gap-2 h-full">
       <h3 class="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-2 px-1">
         <i class="fa-solid fa-dharmachakra text-amber-400"></i>
-        <span>Mindfulness Reminder</span>
+        <span>MINDFULNESS & DHAMMA BOOK</span>
       </h3>
 
-      <div class="mindfulness-card space-y-4">
-        <div class="space-y-3 font-serif text-xs sm:text-sm md:text-base leading-relaxed">
-          <div class="flex items-start gap-2.5 border-b border-amber-500/15 pb-2.5">
-            <span class="text-amber-400 font-extrabold not-italic font-mono text-xs mt-0.5">01.</span>
-            <p class="italic"><span class="text-amber-200 font-extrabold">In every sight,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘာပဲမြင်မြင် ...</span></p>
+      <div class="mindfulness-card flex flex-col justify-between h-full p-5 space-y-4">
+        
+        <!-- စာအုပ်မျက်နှာဖုံး Showcase Card (နှိပ်ပါက အကြီးချဲ့ကြည့်နိုင်သည်) -->
+        <div class="flex gap-4 items-center bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3.5">
+          <div class="relative shrink-0 cursor-pointer" onclick="openBookModal()" title="စာအုပ်ပုံ အကြီးချဲ့ကြည့်ရန် နှိပ်ပါ">
+            <img src="images/book-cover.jpg" alt="ပဋ္ဌာန်းအခြေခံ၍ သံသရာပြတ် ဝိပဿနာအားထုတ်နည်း" 
+              onerror="this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80'"
+              class="w-20 h-28 object-cover rounded-lg border-2 border-amber-500 shadow-lg shadow-amber-500/20 hover:scale-105 transition duration-200">
+            <span class="absolute bottom-1 right-1 bg-black/75 text-amber-400 text-[9px] px-1.5 py-0.5 rounded">
+              <i class="fa-solid fa-magnifying-glass-plus"></i>
+            </span>
+          </div>
+          <div class="flex flex-col justify-center gap-1 min-w-0">
+            <h4 class="text-sm font-black text-amber-200 leading-snug">
+              ပဋ္ဌာန်းအခြေခံ၍ သံသရာပြတ် ဝိပဿနာအားထုတ်နည်း
+            </h4>
+            <p class="text-xs font-semibold text-slate-400">
+              ပဋ္ဌာန်းစာတမ်းရှင် အင်ဂျင်နီယာ ဦးအုန်းကျော် (ပြင်ဦးလွင်)
+            </p>
+            <span class="text-[11px] font-bold text-sky-400">
+              (ပဋ္ဌာန်းမိသားစု ယောဂီလက်စွဲ)
+            </span>
+          </div>
+        </div>
+
+        <!-- Mindfulness Quotes (နံပါတ်စဉ် 01/02 များနှင့် ERP Wisdom စာသား ဖယ်ရှားထားပါသည်) -->
+        <div class="space-y-3 font-serif text-xs sm:text-sm leading-relaxed">
+          <div class="border-b border-amber-500/15 pb-2">
+            <p class="italic"><span class="text-amber-200 font-extrabold text-sm">In every sight,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘာပဲမြင်မြင် ...</span></p>
           </div>
 
-          <div class="flex items-start gap-2.5 border-b border-amber-500/15 pb-2.5">
-            <span class="text-sky-400 font-extrabold not-italic font-mono text-xs mt-0.5">02.</span>
-            <p class="italic"><span class="text-sky-300 font-extrabold">In every sound,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘာပဲကြားကြား ...</span></p>
+          <div class="border-b border-amber-500/15 pb-2">
+            <p class="italic"><span class="text-sky-300 font-extrabold text-sm">In every sound,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘာပဲကြားကြား ...</span></p>
           </div>
 
-          <div class="flex items-start gap-2.5 border-b border-amber-500/15 pb-2.5">
-            <span class="text-emerald-400 font-extrabold not-italic font-mono text-xs mt-0.5">03.</span>
-            <p class="italic"><span class="text-emerald-300 font-extrabold">In every smell,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘယ်လို အနံ့ပဲရရ ...</span></p>
+          <div class="border-b border-amber-500/15 pb-2">
+            <p class="italic"><span class="text-emerald-300 font-extrabold text-sm">In every smell,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘယ်လို အနံ့ပဲရရ ...</span></p>
           </div>
 
-          <div class="flex items-start gap-2.5 border-b border-amber-500/15 pb-2.5">
-            <span class="text-rose-400 font-extrabold not-italic font-mono text-xs mt-0.5">04.</span>
-            <p class="italic"><span class="text-rose-300 font-extrabold">In every taste,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘာပဲစားစား ...</span></p>
+          <div class="border-b border-amber-500/15 pb-2">
+            <p class="italic"><span class="text-rose-300 font-extrabold text-sm">In every taste,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘာပဲစားစား ...</span></p>
           </div>
 
-          <div class="flex items-start gap-2.5 border-b border-amber-500/15 pb-2.5">
-            <span class="text-teal-400 font-extrabold not-italic font-mono text-xs mt-0.5">05.</span>
-            <p class="italic"><span class="text-teal-300 font-extrabold">In every touch,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘာနဲ့ပဲ ထိတွေ့ရပါစေ ...</span></p>
+          <div class="border-b border-amber-500/15 pb-2">
+            <p class="italic"><span class="text-teal-300 font-extrabold text-sm">In every touch,</span> <span class="text-slate-400 not-italic font-sans text-xs">-- မင်း ဘာနဲ့ပဲ ထိတွေ့ရပါစေ ...</span></p>
           </div>
 
           <div class="pt-1">
-            <div class="bg-gradient-to-r from-amber-500/15 via-amber-600/10 to-transparent border border-amber-500/35 p-3.5 rounded-xl shadow-inner space-y-1">
-              <p class="text-amber-300 font-black not-italic text-sm sm:text-base leading-relaxed flex items-center gap-2">
+            <div class="bg-amber-500/15 border border-amber-500/35 p-3.5 rounded-xl shadow-inner space-y-1">
+              <p class="text-amber-300 font-black not-italic text-sm leading-relaxed flex items-center gap-2">
                 <i class="fa-solid fa-quote-left text-amber-400/60 text-xs"></i>
                 <span>In every thought -- မင်း ဘာပဲ တွေးတွေး ...</span>
               </p>
@@ -83,31 +122,28 @@
           </div>
         </div>
 
-        <div class="pt-3 flex flex-wrap items-center justify-between border-t border-amber-500/20 text-xs gap-2">
+        <div class="pt-3 flex items-center justify-between border-t border-amber-500/20 text-xs">
           <div class="flex items-center gap-1.5 font-extrabold text-amber-400">
             <i class="fa-solid fa-dharmachakra text-xs"></i>
             <span>Appamadena sampadetha</span>
             <span class="text-[11px] font-sans font-normal italic text-slate-400">— The Buddha</span>
           </div>
-          <span class="text-[10px] font-extrabold px-3 py-1 rounded-full font-sans uppercase bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-inner">
-            ERP Wisdom
-          </span>
         </div>
       </div>
     </div>
 
-    <!-- Stage Breakdown Table (Active) -->
-    <div class="space-y-2">
+    <!-- ညာဘက်ခြမ်း: Dynamic Table Container (Yogi Breakdown သို့မဟုတ် Cash Summary ဇယား ပေါ်မည့်နေရာ) -->
+    <div id="dash-table-container" class="flex flex-col gap-2 h-full">
       <h3 class="text-xs font-black text-slate-200 uppercase tracking-wider flex items-center gap-2 px-1">
         <i class="fa-solid fa-chart-pie text-indigo-400"></i>
         <span>ကမ္မဋ္ဌာန်း အဆင့်အလိုက် စာရင်း (Active)</span>
       </h3>
 
-      <div class="bg-[#0e172a] border border-amber-500/20 rounded-2xl overflow-hidden shadow-xl">
+      <div class="bg-[#0e172a] border border-amber-500/25 rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col justify-between">
         <div class="overflow-x-auto">
           <table class="w-full text-xs">
             <thead>
-              <tr>
+              <tr class="bg-[#080d1a] border-b-2 border-amber-500/30 text-amber-400 font-bold">
                 <th class="px-4 py-3 text-left">ကမ္မဋ္ဌာန်း အဆင့်</th>
                 <th class="px-4 py-3 text-center">ကျား (MALE)</th>
                 <th class="px-4 py-3 text-center">မ (FEMALE)</th>
@@ -115,11 +151,12 @@
               </tr>
             </thead>
             <tbody id="dash-levels-tbody" class="divide-y divide-slate-800/60">
-              <!-- JS မှတစ်ဆင့် Dynamic Render သွားမည် -->
+              <!-- JS (dashboard.js) မှတစ်ဆင့် Dynamic Render သွားပါမည် -->
             </tbody>
           </table>
         </div>
       </div>
     </div>
+
   </div>
 </div>
