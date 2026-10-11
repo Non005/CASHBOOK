@@ -43,13 +43,14 @@ function toYogiRow(r) {
     regDate: r.reg_date,
     name: r.name,
     age: r.age,
+    occupation: r.occupation || "", // 💡 အလုပ်အကိုင် ဖြည့်စွက်ချက်
     phone: r.phone,
     address: r.address,
     introducer: r.introducer,
     email: r.email,
     gender: r.gender || "ကျား",
     status: r.status,
-    statusDate: r.status_date,
+    statusDate: r.status_date || r.reg_date,
     posted: !!r.posted,
     canPost: !r.posted,
     createdBy: r.created_by,
@@ -61,15 +62,12 @@ function toYogiRow(r) {
 export async function handleGetYogiData(db, payload) {
   const level = Number(payload.level || 1);
   const page = Math.max(1, Number(payload.page || 1));
-  const limit = Math.max(1, Math.min(200, Number(payload.limit || 25)));
+  const limit = Math.max(1, Math.min(200, Number(payload.limit || 30)));
   const offset = (page - 1) * limit;
   const search = String(payload.searchVal || "").trim();
 
   let where = "WHERE level = ?";
-  
-  // 💡 Fixed TS2345 Error: Initialize binds as flexible array
-  const binds = [];
-  binds.push(level);
+  const binds = [level];
 
   if (search) {
     where += " AND (name LIKE ? OR phone LIKE ? OR address LIKE ? OR unique_id LIKE ?)";
@@ -86,7 +84,6 @@ export async function handleGetYogiData(db, payload) {
      FROM yogis ${where}`
   ).bind(...binds).first();
 
-  // Sort Active on Top, Inactive at Bottom by status_date/reg_date
   const rowsRes = await db.prepare(
     `SELECT * FROM yogis ${where}
      ORDER BY (status='Active') DESC, COALESCE(status_date, reg_date, created_at) DESC, id DESC
@@ -119,11 +116,11 @@ export async function handleSaveYogi(db, payload, session) {
 
   await db.prepare(
     `INSERT INTO yogis
-      (unique_id, group_id, level, seq_no, reg_date, name, age, phone, address, introducer, email, gender, status, status_date, posted, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, (SELECT COALESCE(MAX(seq_no),0)+1 FROM yogis WHERE level=?), ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, 0, ?, ?, ?)`
+      (unique_id, group_id, level, seq_no, reg_date, name, age, occupation, phone, address, introducer, email, gender, status, status_date, posted, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, (SELECT COALESCE(MAX(seq_no),0)+1 FROM yogis WHERE level=?), ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, 0, ?, ?, ?)`
   ).bind(
     uniqueId, groupId, level, level, regDate, name,
-    payload.age || null, payload.phone || "", payload.address || "",
+    payload.age || null, payload.occupation || "", payload.phone || "", payload.address || "",
     payload.introducer || "", payload.email || "", payload.gender || "ကျား",
     regDate, session ? session.u : "System", now, now
   ).run();
@@ -140,12 +137,12 @@ export async function handleUpdateYogi(db, payload) {
 
   const now = new Date().toISOString();
 
-  // Preserves original reg_date and created_by on Edit!
   await db.prepare(
     `UPDATE yogis SET
       name = ?,
       gender = ?,
       age = ?,
+      occupation = ?,
       phone = ?,
       address = ?,
       introducer = ?,
@@ -156,6 +153,7 @@ export async function handleUpdateYogi(db, payload) {
     name,
     payload.gender || "ကျား",
     payload.age || null,
+    payload.occupation || "",
     payload.phone || "",
     payload.address || "",
     payload.introducer || "",
@@ -184,7 +182,6 @@ export async function handleToggleYogiStatus(db, payload) {
   const newStatus = payload.status || (row.status === "Active" ? "Inactive" : "Active");
   const clickDate = payload.regDate || todayStr();
 
-  // Updates reg_date & status_date when toggling Active so it moves back to the top!
   await db.prepare("UPDATE yogis SET status=?, status_date=?, reg_date=?, updated_at=? WHERE id=?")
     .bind(newStatus, clickDate, clickDate, new Date().toISOString(), id).run();
 
@@ -192,39 +189,30 @@ export async function handleToggleYogiStatus(db, payload) {
 }
 
 /**
- * Post Yogi Logic:
- * Stage 1-6 -> Promote to Next Stage
- * Stage 7 (သိ-ပါယ်-ဆိုက်-ပွား) -> Move to Stage 8 (ယောဂီ စာရင်းဟောင်း)
+ * 💡 ပြင်ဆင်ထားသော Post Yogi Logic:
+ * ယောဂီအား နောက်တစ်ဆင့်သို့ တိုက်ရိုက် အဆင့်ပြောင်း (Move) ပေးခြင်း
+ * (အဆင့် ၇ မှ Post လုပ်ပါက အဆင့် ၈ - စာရင်းဟောင်း သို့ တိုက်ရိုက် ပြောင်းရွှေ့ပေးပါသည်)
  */
-export async function handlePostYogi(db, payload, session) {
+export async function handlePostYogi(db, payload) {
   const id = Number(payload.id);
   if (!id) return { success: false, message: "ID မတွေ့ပါ။" };
 
   const row = await db.prepare("SELECT * FROM yogis WHERE id=?").bind(id).first();
   if (!row) return { success: false, message: "စာရင်း မတွေ့ပါ။" };
-  if (row.posted) return { success: false, message: "ဤစာရင်းကို Post လုပ်ပြီးသားဖြစ်ပါသည်။" };
 
   const currentLevel = Number(row.level);
-  const nextLevel = currentLevel < 7 ? currentLevel + 1 : 8; // Stage 7 posted goes to Stage 8 (Old Yogis)
+  // အဆင့် ၇ ဖြစ်ပါက အဆင့် ၈ (စာရင်းဟောင်း) သို့ ရွှေ့မည်၊ အခြားအဆင့်ဖြစ်ပါက နောက်တစ်ဆင့်သို့ တိုးမည်
+  const nextLevel = currentLevel < 7 ? currentLevel + 1 : 8;
   const postDate = payload.postDate || todayStr();
   const now = new Date().toISOString();
-  const uniqueId = genId(`Y${nextLevel}`);
 
-  await db.batch([
-    db.prepare(
-      `INSERT INTO yogis
-        (unique_id, group_id, level, seq_no, reg_date, name, age, phone, address, introducer, email, gender, status, status_date, posted, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, (SELECT COALESCE(MAX(seq_no),0)+1 FROM yogis WHERE level=?), ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, 0, ?, ?, ?)`
-    ).bind(
-      uniqueId, row.group_id, nextLevel, nextLevel, postDate, row.name,
-      row.age, row.phone, row.address, row.introducer, row.email, row.gender,
-      postDate, session ? session.u : "System", now, now
-    ),
-    db.prepare("UPDATE yogis SET posted=1, updated_at=? WHERE id=?").bind(now, id)
-  ]);
+  // 💡 ယောဂီ၏ level ကို နောက်တစ်ဆင့်သို့ တိုက်ရိုက် ပြောင်းလိုက်သောကြောင့် လက်ရှိအဆင့်မှ ချက်ချင်း ပျောက်သွားပါမည်
+  await db.prepare(
+    `UPDATE yogis SET level=?, status_date=?, posted=0, updated_at=? WHERE id=?`
+  ).bind(nextLevel, postDate, now, id).run();
 
   const targetName = levelName(nextLevel);
-  return { success: true, message: `${targetName} စာရင်းသို့ Auto ရောက်ရှိသွားပါပြီ။`, uniqueId };
+  return { success: true, message: `${targetName} စာရင်းသို့ အောင်မြင်စွာ ရွှေ့လိုက်ပါပြီ။` };
 }
 
 export async function handleImportYogi(db, payload, session) {
@@ -246,11 +234,11 @@ export async function handleImportYogi(db, payload, session) {
     stmts.push(
       db.prepare(
         `INSERT INTO yogis
-          (unique_id, group_id, level, seq_no, reg_date, name, age, phone, address, introducer, email, gender, status, status_date, posted, created_by, created_at, updated_at)
-         VALUES (?, ?, ?, (SELECT COALESCE(MAX(seq_no),0)+1 FROM yogis WHERE level=?), ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, 0, ?, ?, ?)`
+          (unique_id, group_id, level, seq_no, reg_date, name, age, occupation, phone, address, introducer, email, gender, status, status_date, posted, created_by, created_at, updated_at)
+         VALUES (?, ?, ?, (SELECT COALESCE(MAX(seq_no),0)+1 FROM yogis WHERE level=?), ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, 0, ?, ?, ?)`
       ).bind(
         uniqueId, groupId, level, level, regDate, name,
-        r.age || null, r.phone || "", r.address || "", r.introducer || "",
+        r.age || null, r.occupation || "", r.phone || "", r.address || "", r.introducer || "",
         r.email || "", r.gender || "ကျား", regDate, session ? session.u : "System", now, now
       )
     );
