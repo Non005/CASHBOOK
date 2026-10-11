@@ -3,21 +3,16 @@
  * File: js/dashboard.js 
  */
 
-window._dashTab = window._dashTab || "yogi"; // "yogi" သို့မဟုတ် "cash"
+window._dashTab = window._dashTab || "yogi";
 window._dashDataCache = null;
 
 function formatMoney(amount) {
   return Number(amount || 0).toLocaleString("en-US");
 }
 
-/**
- * စာအုပ်မျက်နှာဖုံး + Mindfulness Reminder ပေါင်းစပ် Card (ဘယ်ဘက်ခြမ်း)
- */
 function getMindfulnessWithBookHtml() {
   return `
     <div class="mindfulness-card" style="background: linear-gradient(145deg, #0e172a 0%, #090f1e 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 1.25rem; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-      
-      <!-- စာအုပ်မျက်နှာဖုံး Showcase Card -->
       <div style="display: flex; gap: 1rem; align-items: center; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 1rem; padding: 0.85rem; margin-bottom: 1rem;">
         <div style="position: relative; flex-shrink: 0; cursor: pointer;" onclick="openBookModal()" title="စာအုပ်ပုံ အကြီးချဲ့ကြည့်ရန် နှိပ်ပါ">
           <img src="images/book-cover.jpg" alt="ပဋ္ဌာန်းအခြေခံ၍ သံသရာပြတ် ဝိပဿနာအားထုတ်နည်း" 
@@ -41,28 +36,22 @@ function getMindfulnessWithBookHtml() {
         </div>
       </div>
 
-      <!-- Mindfulness Reminder Quotes -->
       <div style="display: flex; flex-direction: column; gap: 0.65rem; font-family: Georgia, serif; font-size: 0.88rem; line-height: 1.6;">
         <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
           <p style="margin: 0; font-style: italic;"><span style="color: #fef08a; font-weight: 800;">In every sight,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘာပဲမြင်မြင် ...</span></p>
         </div>
-
         <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
           <p style="margin: 0; font-style: italic;"><span style="color: #7dd3fc; font-weight: 800;">In every sound,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘာပဲကြားကြား ...</span></p>
         </div>
-
         <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
           <p style="margin: 0; font-style: italic;"><span style="color: #6ee7b7; font-weight: 800;">In every smell,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘယ်လို အနံ့ပဲရရ ...</span></p>
         </div>
-
         <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
           <p style="margin: 0; font-style: italic;"><span style="color: #fda4af; font-weight: 800;">In every taste,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘာပဲစားစား ...</span></p>
         </div>
-
         <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
           <p style="margin: 0; font-style: italic;"><span style="color: #5eead4; font-weight: 800;">In every touch,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘာနဲ့ပဲ ထိတွေ့ရပါစေ ...</span></p>
         </div>
-
         <div style="padding-top: 0.2rem;">
           <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.75rem 1rem; border-radius: 0.85rem;">
             <p style="margin: 0; color: #fde047; font-weight: 900; font-style: normal; font-size: 0.92rem;">
@@ -87,9 +76,6 @@ function getMindfulnessWithBookHtml() {
   `;
 }
 
-/**
- * 💡 ထိပ်ဆုံး Box (၄) ခု Render ပြုလုပ်ခြင်း
- */
 function renderTopKpiCards(type, d) {
   if (type === "cash") {
     const c = d.cashSummary || { totalIncome: 0, totalExpense: 0, balance: 0, categories: {} };
@@ -127,7 +113,6 @@ function renderTopKpiCards(type, d) {
           </div>
         </div>
 
-        <!-- 💡 ငွေစာရင်း အတွက် ၄ ခုမြောက် Box (အလှူရရှိငွေ) -->
         <div class="stats-card">
           <div style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
             <i class="fa-solid fa-hand-holding-heart"></i>
@@ -141,7 +126,6 @@ function renderTopKpiCards(type, d) {
     `;
   }
 
-  // 💡 ယောဂီ စာရင်း အတွက် ထိပ်ဆုံး Box (၄) ခု
   return `
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
       <div class="stats-card">
@@ -174,7 +158,6 @@ function renderTopKpiCards(type, d) {
         </div>
       </div>
 
-      <!-- 💡 ယောဂီ အတွက် ၄ ခုမြောက် Box (ဦးဆောင်ဆွေးနွေး ယောဂီ) -->
       <div class="stats-card">
         <div style="background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3);">
           <i class="fa-solid fa-user-tie"></i>
@@ -189,16 +172,19 @@ function renderTopKpiCards(type, d) {
 }
 
 /**
- * ညာဘက် ဇယား (ငွေစာရင်း ချုပ်ဇယား vs ယောဂီ အဆင့်လိုက် စာရင်း)
+ * 💡 ညာဘက် ဇယား (ဝင်ငွေတွင် ၁။ အလှူငွေ ၂။ စာအုပ်ရောင်းရငွေ ၃။ ဘဏ်တိုး ပြင်ဆင်ထားသည်)
  */
 function renderRightTable(type, d) {
   if (type === "cash") {
     const cats = (d.cashSummary && d.cashSummary.categories) || {};
     
+    // 💡 ဝင်ငွေ ပစ္စည်းများ (အလှူငွေ၊ စာအုပ်ရောင်းရငွေ၊ ဘဏ်တိုး)
     const incDonation = (cats["အလှူရရှိ"] && cats["အလှူရရှိ"].income) || 0;
+    const incBookSales = (cats["စာအုပ်ရောင်းရငွေ"] && cats["စာအုပ်ရောင်းရငွေ"].income) || 0;
     const incInterest = (cats["ဘဏ်တိုး"] && cats["ဘဏ်တိုး"].income) || 0;
-    const subTotalIncome = incDonation + incInterest;
+    const subTotalIncome = incDonation + incBookSales + incInterest;
 
+    // ထွက်ငွေ ပစ္စည်းများ
     const expPrinting = (cats["ပုံနှိပ်တိုက်ပေးငွေ"] && cats["ပုံနှိပ်တိုက်ပေးငွေ"].expense) || 0;
     const expRetreat = (cats["တရားစခန်း အလှူငွေ"] && cats["တရားစခန်း အလှူငွေ"].expense) || 0;
     const expGeneral = (cats["အထွေထွေ အသုံးစရိတ်"] && cats["အထွေထွေ အသုံးစရိတ်"].expense) || 0;
@@ -226,6 +212,7 @@ function renderRightTable(type, d) {
                 </tr>
               </thead>
               <tbody>
+                <!-- ဝင်ငွေ ကဏ္ဍ -->
                 <tr style="background-color: rgba(16, 185, 129, 0.1); border-bottom: 1px solid rgba(16, 185, 129, 0.2);">
                   <td colspan="5" style="padding: 8px 14px; font-weight: 900; color: #34d399; font-size: 0.78rem;">
                     <i class="fa-solid fa-circle-down"></i> ဝင်ငွေ
@@ -233,18 +220,27 @@ function renderRightTable(type, d) {
                 </tr>
                 <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
                   <td style="padding: 9px 14px; color: #94a3b8;">၁</td>
-                  <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">အလှူငွေ (အလှူရရှိ)</td>
+                  <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">အလှူငွေ</td>
                   <td style="padding: 9px 14px; text-align: right; color: #34d399; font-weight: bold; font-family: monospace;">+${formatMoney(incDonation)}</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
                   <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(incDonation)}</td>
                 </tr>
+                <!-- 💡 ၂။ စာအုပ်ရောင်းရငွေ အသစ်ထည့်သွင်းချက် -->
                 <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
                   <td style="padding: 9px 14px; color: #94a3b8;">၂</td>
+                  <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">စာအုပ်ရောင်းရငွေ</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #34d399; font-weight: bold; font-family: monospace;">+${formatMoney(incBookSales)}</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(incDonation + incBookSales)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
+                  <td style="padding: 9px 14px; color: #94a3b8;">၃</td>
                   <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">ဘဏ်တိုး</td>
                   <td style="padding: 9px 14px; text-align: right; color: #34d399; font-weight: bold; font-family: monospace;">+${formatMoney(incInterest)}</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
                   <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(subTotalIncome)}</td>
                 </tr>
+                <!-- ဝင်ငွေပေါင်း -->
                 <tr style="background-color: rgba(16, 185, 129, 0.15); border-bottom: 2px solid rgba(16, 185, 129, 0.3);">
                   <td colspan="2" style="padding: 9px 14px; font-weight: 900; color: #34d399;">ဝင်ငွေပေါင်း</td>
                   <td style="padding: 9px 14px; text-align: right; font-weight: 900; color: #34d399; font-family: monospace;">+${formatMoney(subTotalIncome)}</td>
@@ -252,6 +248,7 @@ function renderRightTable(type, d) {
                   <td style="padding: 9px 14px; text-align: right; font-weight: 900; color: #fbbf24; font-family: monospace;">${formatMoney(subTotalIncome)}</td>
                 </tr>
 
+                <!-- ထွက်ငွေ ကဏ္ဍ -->
                 <tr style="background-color: rgba(244, 63, 94, 0.1); border-bottom: 1px solid rgba(244, 63, 94, 0.2);">
                   <td colspan="5" style="padding: 8px 14px; font-weight: 900; color: #f87171; font-size: 0.78rem;">
                     <i class="fa-solid fa-circle-up"></i> ထွက်ငွေ
@@ -278,6 +275,7 @@ function renderRightTable(type, d) {
                   <td style="padding: 9px 14px; text-align: right; color: #f87171; font-weight: bold; font-family: monospace;">-${formatMoney(expGeneral)}</td>
                   <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(netBalance)}</td>
                 </tr>
+                <!-- ထွက်ငွေပေါင်း -->
                 <tr style="background-color: rgba(244, 63, 94, 0.15); border-bottom: 2px solid rgba(244, 63, 94, 0.3);">
                   <td colspan="2" style="padding: 9px 14px; font-weight: 900; color: #f87171;">ထွက်ငွေပေါင်း</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
@@ -285,6 +283,7 @@ function renderRightTable(type, d) {
                   <td style="padding: 9px 14px; text-align: right; font-weight: 900; color: #fbbf24; font-family: monospace;">${formatMoney(netBalance)}</td>
                 </tr>
 
+                <!-- အောက်ဆုံး စုစုပေါင်း လက်ကျန်ငွေ -->
                 <tr style="background-color: rgba(245, 158, 11, 0.2); border-top: 2px solid #f59e0b;">
                   <td colspan="4" style="padding: 12px 14px; font-weight: 900; color: #fbbf24; font-size: 0.9rem;">
                     <i class="fa-solid fa-wallet"></i> လက်ကျန်ငွေ (NET BALANCE)
@@ -359,9 +358,6 @@ function renderRightTable(type, d) {
   `;
 }
 
-/**
- * Main Render Dashboard Function
- */
 window.renderDashboard = async function (silent = false) {
   const container = document.getElementById("view-container");
   if (!container) return;
@@ -392,7 +388,7 @@ window.renderDashboard = async function (silent = false) {
             categories: catMap
           };
         }
-      } catch (err2) { /* ignore fallback */ }
+      } catch (err2) { }
     }
   } catch (err) {
     console.error("getDashboardData Error:", err);
@@ -411,12 +407,12 @@ window.renderDashboard = async function (silent = false) {
   container.innerHTML = `
     <div class="space-y-6 view-panel">
       
-      <!-- 💡 ၁။ ထိပ်ဆုံးမှာ Box (၄) ခု ထားရှိခြင်း -->
+      <!-- ထိပ်ဆုံးမှာ Box (၄) ခု -->
       <div id="dash-kpi-container">
         ${renderTopKpiCards(currentTab, res.data)}
       </div>
 
-      <!-- 💡 ၂။ Tab (၂) ခုကို Box (၄) ခု၏ အောက်တည့်တည့်သို့ ရွှေ့ပြောင်းထားခြင်း -->
+      <!-- Tab (၂) ခု (Box ၄ ခု အောက်တွင်) -->
       <div style="display: flex; gap: 0.5rem; background: #0c1220; padding: 0.4rem; border-radius: 1rem; border: 1px solid rgba(245, 158, 11, 0.25); width: fit-content;">
         <button onclick="switchDashboardTab('yogi')" 
           style="padding: 0.55rem 1.25rem; font-size: 0.8rem; font-weight: 900; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; gap: 0.5rem; ${currentTab === 'yogi' ? 'background: linear-gradient(90deg, #f59e0b, #d97706); color: #090d16; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);' : 'background: transparent; color: #94a3b8;'}">
@@ -431,7 +427,7 @@ window.renderDashboard = async function (silent = false) {
         </button>
       </div>
 
-      <!-- ၃။ အောက်ဘက် 2-Column Grid: ဘယ်ဘက် (စာအုပ်ပုံ + Mindfulness) | ညာဘက် (ဇယား) -->
+      <!-- 2-Column Grid -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; align-items: stretch;">
         
         <!-- ဘယ်ဘက်: Mindfulness Reminder with Book Cover -->
@@ -445,7 +441,7 @@ window.renderDashboard = async function (silent = false) {
           </div>
         </div>
 
-        <!-- ညာဘက်: Table (Yogi Breakdown vs Cash Statement) -->
+        <!-- ညာဘက်: Table -->
         <div id="dash-table-container" style="flex: 1;">
           ${renderRightTable(currentTab, res.data)}
         </div>
@@ -455,9 +451,6 @@ window.renderDashboard = async function (silent = false) {
   `;
 };
 
-/**
- * Tab ပြောင်းသည့် Function
- */
 window.switchDashboardTab = function (tabName) {
   window._dashTab = tabName;
   if (!window._dashDataCache) {
@@ -474,9 +467,6 @@ window.switchDashboardTab = function (tabName) {
   window.renderDashboard(true);
 };
 
-/**
- * စာအုပ်မျက်နှာဖုံးပုံ အကြီးချဲ့ကြည့်ရှုသည့် Modal Lightbox
- */
 window.openBookModal = function () {
   const modalHtml = `
     <div id="book-modal-overlay" class="modal-overlay-bg" onclick="closeBookModal()" style="cursor: zoom-out;">
