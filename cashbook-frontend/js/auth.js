@@ -166,8 +166,7 @@ function loadUsersDropdown() {
 
   const users = window.LOGIN_USERS || [
     "Admin",
-    "ဓမ္မဝန်ဆောင် ၁", "ဓမ္မဝန်ဆောင် ၂", "ဓမ္မဝန်ဆောင် ၃", "ဓမ္မဝန်ဆောင် ၄", "ဓမ္မဝန်ဆောင် ၅",
-    "ဓမ္မဝန်ဆောင် ၆", "ဓမ္မဝန်ဆောင် ၇", "ဓမ္မဝန်ဆောင် ၈", "ဓမ္မဝန်ဆောင် ၉", "ဓမ္မဝန်ဆောင် ၁၀"
+    "ဓမ္မဝန်ဆောင်"
   ];
 
   select.innerHTML = users.map(u => `<option value="${u}" ${u === lastUser ? 'selected' : ''}>${u}</option>`).join("");
