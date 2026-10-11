@@ -1,7 +1,7 @@
 /**
  * YOGI MANAGEMENT SYSTEM — Service Worker (PWA)
  * File: sw.js 
- */
+ */ 
 
 const CACHE_NAME = "yogi-app-v1";
 const STATIC_ASSETS = [
