@@ -3,11 +3,12 @@
  * File: js/cashbook.js  
  */
 
-// 💡 ဝင်ငွေ နှင့် ထွက်ငွေ ခေါင်းစဉ်များ
 const CASH_CATEGORIES = {
   INCOME: ["အလှူရရှိ", "ဘဏ်တိုး"],
   EXPENSE: ["ပုံနှိပ်တိုက်ပေးငွေ", "တရားစခန်း အလှူငွေ", "အထွေထွေ အသုံးစရိတ်"]
 };
+
+let isCashSubmitting = false;
 
 function formatMoney(amount) {
   return Number(amount || 0).toLocaleString("en-US");
@@ -17,6 +18,18 @@ function getTodayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// ရက်စွဲ format (DD-MM-YYYY သို့မဟုတ် YYYY-MM-DD) ကို Input Type Date နှင့် ကိုက်ညီအောင် ပြောင်းခြင်း
+function toIsoDate(dateStr) {
+  if (!dateStr) return getTodayIso();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const parts = dateStr.split('-');
+  if (parts.length === 3 && parts[0].length === 2) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
+}
+
+// 💡 ၁။ ထိပ်ဆုံးက Box ၃ ခုတွင် "ကျပ်" ဖယ်ရှားထားသော KPI Cards
 function statCardsCashHtml(income, expense, balance) {
   return `
     <div class="kpi-grid-container">
@@ -26,7 +39,7 @@ function statCardsCashHtml(income, expense, balance) {
         </div>
         <div style="display: flex; flex-direction: column;">
           <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">ဝင်ငွေ (INCOME)</p>
-          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #34d399; font-family: monospace;">+${formatMoney(income)} ကျပ်</h3>
+          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #34d399; font-family: monospace;">+${formatMoney(income)}</h3>
         </div>
       </div>
 
@@ -36,7 +49,7 @@ function statCardsCashHtml(income, expense, balance) {
         </div>
         <div style="display: flex; flex-direction: column;">
           <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">ထွက်ငွေ (EXPENSE)</p>
-          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #f87171; font-family: monospace;">-${formatMoney(expense)} ကျပ်</h3>
+          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #f87171; font-family: monospace;">-${formatMoney(expense)}</h3>
         </div>
       </div>
 
@@ -46,7 +59,7 @@ function statCardsCashHtml(income, expense, balance) {
         </div>
         <div style="display: flex; flex-direction: column;">
           <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">လက်ကျန် (BALANCE)</p>
-          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #fbbf24; font-family: monospace;">${formatMoney(balance)} ကျပ်</h3>
+          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #fbbf24; font-family: monospace;">${formatMoney(balance)}</h3>
         </div>
       </div>
     </div>
@@ -88,37 +101,33 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
 
   container.innerHTML = `
     <div class="space-y-5 view-panel">
-      <!-- Top 3 KPI Cards: ဝင်ငွေ၊ ထွက်ငွေ၊ လက်ကျန် -->
+      <!-- Top 3 KPI Cards -->
       ${statCardsCashHtml(data.totalIncome, data.totalExpense, data.balance)}
 
-      <!-- Control Bar -->
+      <!-- Control Bar ("ရှာမည်" ခလုတ်ဖြုတ်ထားပြီး Live Search ပြုလုပ်ထားသည်) -->
       <div class="control-bar-wrapper">
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; flex: 1;">
-          <div style="position: relative; min-width: 180px; flex: 1;">
+          <div style="position: relative; min-width: 200px; flex: 1;">
             <input type="text" id="cash-search-input" value="${window.escapeHtml(searchVal)}" 
-              onkeydown="if(event.key==='Enter') triggerCashSearch()"
-              placeholder="အကြောင်းအရာ / ဦးဆောင်သူ / ခေါင်းစဉ် ရှာရန်..." 
+              oninput="triggerCashSearch()"
+              placeholder="အကြောင်းအရာ / ဦးဆောင်သူ / ခေါင်းစဉ် ရိုက်ရှာရန်..." 
               style="width: 100%; padding-left: 2.2rem; background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; color: #f1f5f9; font-size: 0.8rem; outline: none; height: 38px;">
             <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.75rem;"></i>
           </div>
 
           <div style="display: flex; align-items: center; gap: 0.3rem;">
             <span style="font-size: 0.72rem; color: #94a3b8; font-weight: bold;">From:</span>
-            <input type="date" id="cash-from-date" value="${fromDate}" style="background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.6rem; color: #cbd5e1; font-size: 0.75rem; padding: 0.35rem 0.5rem; outline: none; height: 38px;">
+            <input type="date" id="cash-from-date" value="${fromDate}" onchange="triggerCashSearch()" style="background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.6rem; color: #cbd5e1; font-size: 0.75rem; padding: 0.35rem 0.5rem; outline: none; height: 38px;">
           </div>
 
           <div style="display: flex; align-items: center; gap: 0.3rem;">
             <span style="font-size: 0.72rem; color: #94a3b8; font-weight: bold;">To:</span>
-            <input type="date" id="cash-to-date" value="${toDate}" style="background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.6rem; color: #cbd5e1; font-size: 0.75rem; padding: 0.35rem 0.5rem; outline: none; height: 38px;">
+            <input type="date" id="cash-to-date" value="${toDate}" onchange="triggerCashSearch()" style="background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.6rem; color: #cbd5e1; font-size: 0.75rem; padding: 0.35rem 0.5rem; outline: none; height: 38px;">
           </div>
-
-          <button onclick="triggerCashSearch()" class="btn-control" style="background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4); padding: 0.5rem 0.85rem; height: 38px;">
-            <i class="fa-solid fa-filter"></i> ရှာမည်
-          </button>
         </div>
 
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-          <button onclick="renderCashbook(1, '', '', '')" class="btn-control btn-control-refresh" title="မူလအတိုင်း ပြန်လည်ရယူပါ">
+          <button onclick="resetCashSearch()" class="btn-control btn-control-refresh" title="မူလအတိုင်း ပြန်လည်ရယူပါ">
             <i class="fa-solid fa-rotate"></i> Refresh
           </button>
           <button onclick="exportCashbookToExcel()" class="btn-control btn-control-export" title="Excel ထုတ်ယူမည်">
@@ -130,7 +139,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
         </div>
       </div>
 
-      <!-- Table View: စဉ် | ရက်စွဲ | ခေါင်းစဉ် | အကြောင်းအရာ | ဝင်ငွေ | ထွက်ငွေ | လက်ကျန် | ဦးဆောင်သူ | Action -->
+      <!-- Table View: စဉ် | ရက်စွဲ | ခေါင်းစဉ် | အကြောင်းအရာ | ဝင်ငွေ | ထွက်ငွေ | လက်ကျန် | ဦးဆောင်သူ | ACTION -->
       <div class="table-scroll-container">
         <table>
           <thead>
@@ -158,7 +167,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
                     ${window.escapeHtml(r.category)}
                   </span>
                 </td>
-                <td style="white-space: nowrap; color: #f8fafc; font-weight: 600;">${window.escapeHtml(r.description)}</td>
+                <td style="white-space: normal; min-width: 180px; color: #f8fafc; font-weight: 600; line-height: 1.4;">${window.escapeHtml(r.description)}</td>
                 <td style="text-align: right; white-space: nowrap; font-weight: 800; color: #34d399; font-family: monospace;">
                   ${r.income > 0 ? '+' + formatMoney(r.income) : '-'}
                 </td>
@@ -204,30 +213,40 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
   `;
 }
 
+let cashSearchTimer = null;
 function triggerCashSearch() {
-  const search = document.getElementById("cash-search-input") ? document.getElementById("cash-search-input").value.trim() : "";
-  const fromDate = document.getElementById("cash-from-date") ? document.getElementById("cash-from-date").value : "";
-  const toDate = document.getElementById("cash-to-date") ? document.getElementById("cash-to-date").value : "";
-  renderCashbook(1, search, fromDate, toDate);
+  clearTimeout(cashSearchTimer);
+  cashSearchTimer = setTimeout(() => {
+    const search = document.getElementById("cash-search-input") ? document.getElementById("cash-search-input").value.trim() : "";
+    const fromDate = document.getElementById("cash-from-date") ? document.getElementById("cash-from-date").value : "";
+    const toDate = document.getElementById("cash-to-date") ? document.getElementById("cash-to-date").value : "";
+    renderCashbook(1, search, fromDate, toDate, true);
+  }, 300);
+}
+
+function resetCashSearch() {
+  renderCashbook(1, '', '', '');
 }
 
 /**
- * Centered Modal Window for New Add & Edit
+ * 💡 Edit လုပ်ရာတွင် မူရင်းဒေတာ အကုန်ပြသခြင်း & 2-Rows ချဲ့နိုင်သော Textarea ထည့်သွင်းထားသော Modal
  */
 function openCashModal(cashId = null) {
   let existing = null;
   if (cashId) {
-    existing = (window._currentCashRows || []).find(r => String(r.id) === String(cashId));
+    existing = (window._currentCashRows || []).find(r => Number(r.id) === Number(cashId));
   }
 
   const isEdit = !!existing;
-  const today = getTodayIso();
+  const modalDate = isEdit ? toIsoDate(existing.txDate) : getTodayIso();
   const currentCategory = isEdit ? existing.category : "အလှူရရှိ";
-  const currentAmount = isEdit ? (existing.income > 0 ? existing.income : existing.expense) : "";
+  const currentAmount = isEdit ? (Number(existing.income) > 0 ? existing.income : existing.expense) : "";
+  const currentDesc = isEdit ? (existing.description || '') : '';
+  const currentLeader = isEdit ? (existing.leaderName || '') : '';
 
   const modalHtml = `
     <div id="cash-modal-overlay" class="modal-overlay-bg">
-      <div class="modal-dialog-box">
+      <div class="modal-dialog-box" style="max-width: 500px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(245, 158, 11, 0.2); padding-bottom: 0.75rem; margin-bottom: 1rem;">
           <h3 style="margin: 0; color: #fbbf24; font-size: 0.95rem; font-weight: 800;">
             <i class="fa-solid ${isEdit ? 'fa-pen-to-square' : 'fa-wallet'}"></i>
@@ -241,7 +260,7 @@ function openCashModal(cashId = null) {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div>
               <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">ရက်စွဲ *</label>
-              <input type="date" id="cash-modal-date" required value="${isEdit ? existing.txDate : today}">
+              <input type="date" id="cash-modal-date" required value="${modalDate}">
             </div>
             
             <div>
@@ -260,28 +279,31 @@ function openCashModal(cashId = null) {
             </div>
           </div>
 
-          <!-- Type Hint Badge -->
           <div id="cash-type-hint" style="padding: 0.4rem 0.75rem; border-radius: 0.5rem; font-size: 0.72rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem;">
           </div>
 
           <div>
-            <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">ငွေပမာဏ (ကျပ်) *</label>
+            <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">ငွေပမာဏ *</label>
             <input type="number" id="cash-modal-amount" required min="1" value="${currentAmount}" placeholder="ဥပမာ - 100000">
           </div>
 
+          <!-- 💡 ၅။ အောက်သို့ စိတ်ကြိုက်ချဲ့နိုင်သော ၂ တန်း Textarea (Expandable rows="2") -->
           <div>
             <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">အကြောင်းအရာ *</label>
-            <input type="text" id="cash-modal-desc" required value="${isEdit ? window.escapeHtml(existing.description) : ''}" placeholder="ဥပမာ - တရားစာအုပ် ရိုက်နှိပ်စရိတ် / ဆွမ်းအလှူခံရငွေ...">
+            <textarea id="cash-modal-desc" rows="2" required placeholder="ဥပမာ - တရားစာအုပ် ရိုက်နှိပ်စရိတ် / ဆွမ်းအလှူခံရငွေ..."
+              style="width: 100%; background: #080d1a; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 0.75rem; padding: 0.5rem 0.85rem; color: #f8fafc; font-size: 0.82rem; outline: none; resize: vertical; min-height: 56px; font-family: inherit; box-sizing: border-box; display: block;">${window.escapeHtml(currentDesc)}</textarea>
           </div>
 
           <div>
             <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">ဦးဆောင်သူ / တာဝန်ခံ *</label>
-            <input type="text" id="cash-modal-leader" required value="${isEdit ? window.escapeHtml(existing.leaderName) : ''}" placeholder="အမည် ရိုက်ထည့်ပါ...">
+            <input type="text" id="cash-modal-leader" required value="${window.escapeHtml(currentLeader)}" placeholder="အမည် ရိုက်ထည့်ပါ...">
           </div>
 
           <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
             <button type="button" onclick="closeCashModal()" class="btn-control btn-control-refresh" style="padding: 0.5rem 1rem;">မလုပ်တော့ပါ</button>
-            <button type="submit" class="btn-control btn-control-add" style="padding: 0.5rem 1.25rem;">သိမ်းဆည်းမည်</button>
+            <button type="submit" id="cash-submit-btn" class="btn-control btn-control-add" style="padding: 0.5rem 1.25rem;">
+              သိမ်းဆည်းမည်
+            </button>
           </div>
         </form>
       </div>
@@ -296,7 +318,7 @@ function openCashModal(cashId = null) {
 }
 
 function updateCategoryTypeBadge() {
-  const cat = document.getElementById("cash-modal-category").value;
+  const cat = document.getElementById("cash-modal-category") ? document.getElementById("cash-modal-category").value : "";
   const hint = document.getElementById("cash-type-hint");
   if (!hint) return;
 
@@ -319,20 +341,35 @@ function closeCashModal() {
   if (modal) modal.remove();
 }
 
+/**
+ * 💡 လိုင်းမကောင်းချိန် ထပ်ခါထပ်ခါ မနှိပ်မိစေရန် (Double-click lock) ထည့်သွင်းထားသော Save Function
+ */
 async function saveCashForm(event, editId = null) {
   event.preventDefault();
+
+  if (isCashSubmitting) return; // ခလုတ်ထပ်မနှိပ်နိုင်အောင် ပိတ်ခြင်း
+
   const txDate = document.getElementById("cash-modal-date").value;
   const category = document.getElementById("cash-modal-category").value;
   const amount = document.getElementById("cash-modal-amount").value;
   const description = document.getElementById("cash-modal-desc").value.trim();
   const leaderName = document.getElementById("cash-modal-leader").value.trim();
+  const submitBtn = document.getElementById("cash-submit-btn");
 
   if (!category || !description || !leaderName || !amount) {
     window.showToast("ERROR", "အချက်အလက်များကို ပြည့်စုံစွာ ဖြည့်သွင်းပါ");
     return;
   }
 
+  isCashSubmitting = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = "0.5";
+    submitBtn.style.cursor = "not-allowed";
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> သိမ်းဆည်းနေပါသည်...`;
+  }
   window.toggleLoading(true);
+
   try {
     const payload = {
       id: editId || undefined,
@@ -346,15 +383,25 @@ async function saveCashForm(event, editId = null) {
     const action = editId ? "updateCashbook" : "saveCashbook";
     const res = await window.callApi(action, payload);
 
-    if (res.success) {
+    if (res && res.success) {
       window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ငွေစာရင်း အသစ် သိမ်းဆည်းပြီးပါပြီ။");
       closeCashModal();
       renderCashbook();
+    } else {
+      window.showToast("ERROR", (res && res.message) || "ဆာဗာတွင် သိမ်းဆည်း၍ မရပါ");
     }
   } catch (e) {
-    console.error(e);
+    console.error("Save Cashbook Error:", e);
+    window.showToast("ERROR", "ဆာဗာ အမှား: " + (e.message || String(e)));
   } finally {
+    isCashSubmitting = false;
     window.toggleLoading(false);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = "1";
+      submitBtn.style.cursor = "pointer";
+      submitBtn.innerHTML = `သိမ်းဆည်းမည်`;
+    }
   }
 }
 
@@ -363,9 +410,11 @@ async function deleteCashRecord(id) {
   window.toggleLoading(true);
   try {
     const res = await window.callApi("deleteCashbook", { id });
-    if (res.success) {
+    if (res && res.success) {
       window.showToast("SUCCESS", "ဖျက်ပြီးပါပြီ။");
       renderCashbook();
+    } else {
+      window.showToast("ERROR", (res && res.message) || "ဖျက်၍မရပါ");
     }
   } catch (e) {
     console.error(e);
@@ -395,4 +444,5 @@ window.saveCashForm = saveCashForm;
 window.deleteCashRecord = deleteCashRecord;
 window.exportCashbookToExcel = exportCashbookToExcel;
 window.triggerCashSearch = triggerCashSearch;
+window.resetCashSearch = resetCashSearch;
 window.updateCategoryTypeBadge = updateCategoryTypeBadge;
