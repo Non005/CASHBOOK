@@ -18,7 +18,7 @@ const DEFAULT_LEVELS = [
 let liveSyncInterval = null;
 
 /**
- * 💡 Mobile & Tablet Sidebar Controls (Android / iPhone / Tablet အဖွင့်/အပိတ် Logic)
+ * 💡 Mobile & Tablet Sidebar Controls
  */
 window.toggleMobileSidebar = function (forceClose = false) {
   const sidebar = document.getElementById("main-sidebar");
@@ -44,7 +44,7 @@ window.closeMobileSidebar = function () {
 };
 
 /**
- * 💡 Smart Live Sync Auto-Refresh Manager (၅ စက္ကန့်တစ်ကြိမ် နောက်ကွယ်မှ Auto Refresh လုပ်ပေးမည်)
+ * 💡 Smart Live Sync Auto-Refresh Manager
  */
 window.startLiveSync = function () {
   if (liveSyncInterval) clearInterval(liveSyncInterval);
@@ -141,7 +141,7 @@ function updateActiveNav(tabName, param) {
 }
 
 /**
- * Main Tab Router Function (စာမျက်နှာ ကူးပြောင်းခြင်း)
+ * Main Tab Router Function
  */
 window.switchTab = function (tabName, param = null) {
   if (window.AppState) {
@@ -181,7 +181,7 @@ window.switchTab = function (tabName, param = null) {
 };
 
 /**
- * Renders Dynamic Sidebar Navigation
+ * 💡 Renders Dynamic Sidebar Navigation (ငွေစာရင်း ကဏ္ဍ ခေါင်းစဉ်သေး ထည့်သွင်းထားသည်)
  */
 function renderSidebar() {
   const nav = document.getElementById("sidebar-nav");
@@ -194,12 +194,14 @@ function renderSidebar() {
       <span class="truncate">ပင်မစာမျက်နှာ</span>
     </button>
 
-    <!-- 💡 ငွေစာရင်း ကို ပင်မစာမျက်နှာအောက် ထိပ်ဆုံးသို့ ရွှေ့ပြောင်းထားပါသည် -->
+    <!-- 💡 ၁။ ငွေစာရင်း အတွက် သီးသန့် ခေါင်းစဉ်သေး (ကမ္မဋ္ဌာန်းအဆင့်များလို ပုံစံတူ) -->
+    <p class="pt-3 pb-1 px-3 text-[10px] font-black text-amber-400/70 uppercase tracking-widest">ငွေစာရင်း ကဏ္ဍ</p>
     <button data-tab="cashbook" onclick="switchTab('cashbook')" class="nav-btn w-full text-left p-2.5 rounded-xl font-extrabold text-xs flex items-center gap-2.5 hover:bg-slate-800/80 transition cursor-pointer">
       <i class="fa-solid fa-wallet text-amber-400 text-sm shrink-0"></i>
       <span class="truncate">ငွေစာရင်း</span>
     </button>
 
+    <!-- ကမ္မဋ္ဌာန်း အဆင့်များ -->
     <p class="pt-3 pb-1 px-3 text-[10px] font-black text-amber-400/70 uppercase tracking-widest">ကမ္မဋ္ဌာန်း အဆင့်များ</p>
   `;
 
