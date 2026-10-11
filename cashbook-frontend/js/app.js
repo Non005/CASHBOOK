@@ -26,23 +26,16 @@ window.toggleMobileSidebar = function (forceClose = false) {
 
   if (!sidebar) return;
 
-  // Sidebar လက်ရှိ ပိတ်ထားသလား စစ်ဆေးခြင်း
   const isClosed = sidebar.classList.contains("-translate-x-full");
 
   if (forceClose || !isClosed) {
-    // ပိတ်မည်
     sidebar.classList.add("-translate-x-full");
     sidebar.classList.remove("translate-x-0");
-    if (backdrop) {
-      backdrop.classList.add("hidden");
-    }
+    if (backdrop) backdrop.classList.add("hidden");
   } else {
-    // ဖွင့်မည်
     sidebar.classList.remove("-translate-x-full");
     sidebar.classList.add("translate-x-0");
-    if (backdrop) {
-      backdrop.classList.remove("hidden");
-    }
+    if (backdrop) backdrop.classList.remove("hidden");
   }
 };
 
@@ -57,25 +50,21 @@ window.startLiveSync = function () {
   if (liveSyncInterval) clearInterval(liveSyncInterval);
 
   liveSyncInterval = setInterval(() => {
-    // ၁။ Token မရှိလျှင် မလုပ်ပါ
     const token = localStorage.getItem("yogi_auth_token");
     if (!token) return;
 
-    // ၂။ Screen မီးပိတ်ထားလျှင် သို့မဟုတ် အခြား Tab သို့ ရောက်နေလျှင် မလုပ်ပါ
     if (document.hidden) return;
 
-    // ၃။ Modal ပွင့်နေချိန် စာရိုက်မပျက်အောင် Auto Sync ခဏ ရပ်မည်
     const isModalOpen = document.querySelector('.modal-overlay-bg:not(.hidden), #loading-overlay:not(.hidden)');
     if (isModalOpen) return;
 
-    // ၄။ ရောက်နေသော Tab အလိုက် Silent Refresh ခေါ်ယူခြင်း
     if (!window.AppState) return;
     const currentTab = window.AppState.currentTab || "home";
     const currentParam = window.AppState.currentParam;
 
     if (currentTab === "home" || currentTab === "dashboard") {
       if (typeof window.renderDashboard === "function") {
-        window.renderDashboard(true); // silent refresh
+        window.renderDashboard(true);
       }
     } else if (currentTab === "level" || currentTab === "yogi" || currentTab === "stage") {
       const levelId = Number(currentParam || 1);
@@ -94,6 +83,14 @@ window.startLiveSync = function () {
         const search = window.currentLeaderSearch || "";
         window.renderLeaders(page, search, true);
       }
+    // 💡 ၁။ ငွေစာရင်း (Cashbook) အတွက် Auto Live-Sync ထည့်သွင်းထားပါသည်
+    } else if (currentTab === "cashbook" || currentTab === "cash") {
+      if (typeof window.renderCashbook === "function") {
+        const fromDate = document.getElementById("cash-from-date") ? document.getElementById("cash-from-date").value : "";
+        const toDate = document.getElementById("cash-to-date") ? document.getElementById("cash-to-date").value : "";
+        const search = document.getElementById("cash-search-input") ? document.getElementById("cash-search-input").value.trim() : "";
+        window.renderCashbook(1, search, fromDate, toDate, true);
+      }
     }
   }, 5000);
 };
@@ -102,7 +99,6 @@ window.startLiveSync = function () {
  * App Initialization
  */
 window.initApp = function () {
-  // Live User Display ချိတ်ဆက်ခြင်း (AppState မရှိပါက LocalStorage မှ fallback ယူမည်)
   const liveUserEl = document.getElementById("live-user-name");
   if (liveUserEl) {
     const activeUser = (window.AppState && window.AppState.currentUser) || localStorage.getItem("yogi_user_name") || localStorage.getItem("yogi_user") || "Admin";
@@ -154,15 +150,12 @@ window.switchTab = function (tabName, param = null) {
     window.AppState.currentParam = param;
   }
 
-  // Active Highlight ညှိခြင်း
   updateActiveNav(tabName, param);
 
-  // 💡 ဖုန်း သို့မဟုတ် Tablet (Screen width < 1024px) တွင် Menu တစ်ခုခုနှိပ်လိုက်ပါက Sidebar ကို အလိုအလျောက် ပိတ်ပေးမည်
   if (window.innerWidth < 1024) {
     window.closeMobileSidebar();
   }
 
-  // Header Title ကို သက်ဆိုင်ရာ နာမည်အလိုက် ပြောင်းလဲပေးခြင်း
   const pageTitleEl = document.getElementById("page-title");
   const sourceLevels = (window.LEVELS && window.LEVELS.length > 0) ? window.LEVELS : DEFAULT_LEVELS;
 
@@ -182,6 +175,10 @@ window.switchTab = function (tabName, param = null) {
   } else if (tabName === "leaders" || tabName === "leader") {
     if (pageTitleEl) pageTitleEl.innerText = "ဦးဆောင်ဆွေးနွေး ယောဂီများ";
     if (typeof window.renderLeaders === "function") window.renderLeaders();
+  // 💡 ၂။ ငွေစာရင်း (Cashbook) Router ချိတ်ဆက်ခြင်း
+  } else if (tabName === "cashbook" || tabName === "cash") {
+    if (pageTitleEl) pageTitleEl.innerText = "ငွေစာရင်း (Cashbook)";
+    if (typeof window.renderCashbook === "function") window.renderCashbook();
   }
 };
 
@@ -226,6 +223,11 @@ function renderSidebar() {
       <i class="fa-solid fa-user-tie text-indigo-400 text-sm shrink-0"></i>
       <span class="truncate">ဦးဆောင်ဆွေးနွေး ယောဂီ</span>
     </button>
+    <!-- 💡 ၃။ ဘယ်ဘက် Menu တွင် "ငွေစာရင်း" ခလုတ် ထည့်သွင်းထားပါသည် -->
+    <button data-tab="cashbook" onclick="switchTab('cashbook')" class="nav-btn w-full text-left p-2 rounded-xl font-bold text-xs flex items-center gap-2.5 hover:bg-slate-800/80 transition cursor-pointer">
+      <i class="fa-solid fa-wallet text-amber-400 text-sm shrink-0"></i>
+      <span class="truncate">ငွေစာရင်း</span>
+    </button>
   `;
 
   nav.innerHTML = html;
@@ -252,7 +254,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.startLiveSync();
   }
 
-  // 💡 Screen အကျယ်ပြောင်းလဲသည့်အခါ (Tablet Screen လှည့်သည့်အခါ) Drawer အလိုအလျောက် ညှိပေးခြင်း
   window.addEventListener("resize", () => {
     if (window.innerWidth >= 1024) {
       const backdrop = document.getElementById("sidebar-backdrop");
@@ -260,7 +261,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 💡 Keyboard မှ Escape (Esc) နှိပ်လျှင် Sidebar ပိတ်ပေးခြင်း
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       window.closeMobileSidebar();
