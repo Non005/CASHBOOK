@@ -1,8 +1,11 @@
 name = "yogi-list"
 main = "worker.js"
-compatibility_date = "2024-01-01"
+compatibility_date = "2026-08-09"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "yogi"
-database_id = "edd63c93-0495-45bd-9877-ed17ea5fb"
+database_id = "edd63c93-0495-45bd-9877-bae360fa2f83"
+
+[observability]
+enabled = true
