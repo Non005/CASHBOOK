@@ -3,8 +3,9 @@
  * File: js/cashbook.js  
  */
 
+// 💡 ဝင်ငွေကဏ္ဍတွင် "စာအုပ်ရောင်းရငွေ" အပြည့်အဝ ထည့်သွင်းထားပါသည်
 const CASH_CATEGORIES = {
-  INCOME: ["အလှူရရှိ","စာအုပ်ရောင်းရငွေ", "ဘဏ်တိုး"],
+  INCOME: ["အလှူရရှိ", "အလှူငွေ", "စာအုပ်ရောင်းရငွေ", "ဘဏ်တိုး"],
   EXPENSE: ["ပုံနှိပ်တိုက်ပေးငွေ", "တရားစခန်း အလှူငွေ", "အထွေထွေ အသုံးစရိတ်"]
 };
 
@@ -18,7 +19,7 @@ function getTodayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// ရက်စွဲ format (DD-MM-YYYY သို့မဟုတ် YYYY-MM-DD) ကို Input Type Date နှင့် ကိုက်ညီအောင် ပြောင်းခြင်း
+// ရက်စွဲ format ကို Input Type Date နှင့် ကိုက်ညီအောင် ပြောင်းခြင်း
 function toIsoDate(dateStr) {
   if (!dateStr) return getTodayIso();
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
@@ -29,10 +30,10 @@ function toIsoDate(dateStr) {
   return dateStr;
 }
 
-// 💡 ၁။ ထိပ်ဆုံးက Box ၃ ခုတွင် "ကျပ်" ဖယ်ရှားထားသော KPI Cards
-function statCardsCashHtml(income, expense, balance) {
+// ထိပ်ဆုံးက KPI Cards (ကျပ် စာသား မပါပါ)
+function statCardsCashHtml(income, expense, balance, bookSales = 0) {
   return `
-    <div class="kpi-grid-container">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
       <div class="stats-card">
         <div style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
           <i class="fa-solid fa-arrow-down-long"></i>
@@ -60,6 +61,16 @@ function statCardsCashHtml(income, expense, balance) {
         <div style="display: flex; flex-direction: column;">
           <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">လက်ကျန် (BALANCE)</p>
           <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #fbbf24; font-family: monospace;">${formatMoney(balance)}</h3>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+          <i class="fa-solid fa-book"></i>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">စာအုပ်ရောင်းရငွေ</p>
+          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #38bdf8; font-family: monospace;">+${formatMoney(bookSales)}</h3>
         </div>
       </div>
     </div>
@@ -97,14 +108,17 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
   const totalCount = data.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
+  // စာအုပ်ရောင်းရငွေ စုစုပေါင်း တွက်ချက်ခြင်း
+  const totalBookSales = rawRows.filter(r => r.category === "စာအုပ်ရောင်းရငွေ").reduce((sum, r) => sum + (Number(r.income) || 0), 0);
+
   window._currentCashRows = rawRows;
 
   container.innerHTML = `
     <div class="space-y-5 view-panel">
-      <!-- Top 3 KPI Cards -->
-      ${statCardsCashHtml(data.totalIncome, data.totalExpense, data.balance)}
+      <!-- Top KPI Cards (၄ ခု) -->
+      ${statCardsCashHtml(data.totalIncome, data.totalExpense, data.balance, totalBookSales)}
 
-      <!-- Control Bar ("ရှာမည်" ခလုတ်ဖြုတ်ထားပြီး Live Search ပြုလုပ်ထားသည်) -->
+      <!-- Control Bar (Live Search ပါဝင်သည်) -->
       <div class="control-bar-wrapper">
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; flex: 1;">
           <div style="position: relative; min-width: 200px; flex: 1;">
@@ -229,7 +243,7 @@ function resetCashSearch() {
 }
 
 /**
- * 💡 Edit လုပ်ရာတွင် မူရင်းဒေတာ အကုန်ပြသခြင်း & 2-Rows ချဲ့နိုင်သော Textarea ထည့်သွင်းထားသော Modal
+ * 💡 Modal Form (ဝင်ငွေတွင် "စာအုပ်ရောင်းရငွေ" ရွေးချယ်နိုင်အောင် ထည့်သွင်းထားပါသည်)
  */
 function openCashModal(cashId = null) {
   let existing = null;
@@ -267,7 +281,9 @@ function openCashModal(cashId = null) {
               <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">ခေါင်းစဉ် *</label>
               <select id="cash-modal-category" required onchange="updateCategoryTypeBadge()">
                 <optgroup label="ဝင်ငွေ (Income)">
-                  <option value="အလှူရရှိ" ${currentCategory === 'အလှူရရှိ' ? 'selected' : ''}>အလှူရရှိ</option>
+                  <option value="အလှူရရှိ" ${currentCategory === 'အလှူရရှိ' || currentCategory === 'အလှူငွေ' ? 'selected' : ''}>အလှူငွေ</option>
+                  <!-- 💡 စာအုပ်ရောင်းရငွေ Option အသစ် -->
+                  <option value="စာအုပ်ရောင်းရငွေ" ${currentCategory === 'စာအုပ်ရောင်းရငွေ' ? 'selected' : ''}>စာအုပ်ရောင်းရငွေ</option>
                   <option value="ဘဏ်တိုး" ${currentCategory === 'ဘဏ်တိုး' ? 'selected' : ''}>ဘဏ်တိုး</option>
                 </optgroup>
                 <optgroup label="ထွက်ငွေ (Expense)">
@@ -287,7 +303,7 @@ function openCashModal(cashId = null) {
             <input type="number" id="cash-modal-amount" required min="1" value="${currentAmount}" placeholder="ဥပမာ - 100000">
           </div>
 
-          <!-- 💡 ၅။ အောက်သို့ စိတ်ကြိုက်ချဲ့နိုင်သော ၂ တန်း Textarea (Expandable rows="2") -->
+          <!-- ၂ တန်းချဲ့နိုင်သော Textarea -->
           <div>
             <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">အကြောင်းအရာ *</label>
             <textarea id="cash-modal-desc" rows="2" required placeholder="ဥပမာ - တရားစာအုပ် ရိုက်နှိပ်စရိတ် / ဆွမ်းအလှူခံရငွေ..."
@@ -341,13 +357,10 @@ function closeCashModal() {
   if (modal) modal.remove();
 }
 
-/**
- * 💡 လိုင်းမကောင်းချိန် ထပ်ခါထပ်ခါ မနှိပ်မိစေရန် (Double-click lock) ထည့်သွင်းထားသော Save Function
- */
 async function saveCashForm(event, editId = null) {
   event.preventDefault();
 
-  if (isCashSubmitting) return; // ခလုတ်ထပ်မနှိပ်နိုင်အောင် ပိတ်ခြင်း
+  if (isCashSubmitting) return;
 
   const txDate = document.getElementById("cash-modal-date").value;
   const category = document.getElementById("cash-modal-category").value;
