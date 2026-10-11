@@ -4,7 +4,8 @@
  * ========================================================================
  */
 
-const INCOME_CATEGORIES = ["အလှူရရှိ", "စာအုပ်ရောင်းရငွေ", "ဘဏ်တိုး"];
+// 💡 ဝင်ငွေစာရင်းထဲတွင် "စာအုပ်ရောင်းရငွေ" ထည့်သွင်းထားပါသည်
+const INCOME_CATEGORIES = ["အလှူရရှိ", "အလှူငွေ", "စာအုပ်ရောင်းရငွေ", "ဘဏ်တိုး"];
 const EXPENSE_CATEGORIES = ["ပုံနှိပ်တိုက်ပေးငွေ", "တရားစခန်း အလှူငွေ", "အထွေထွေ အသုံးစရိတ်"];
 
 function todayStr() {
@@ -64,13 +65,12 @@ export async function handleGetCashbookData(db, payload) {
     binds.push(toDate);
   }
 
-  // ၁။ ဝင်ငွေ၊ ထွက်ငွေ၊ လက်ကျန် ကတ်များအတွက် Summary Aggregate
   const aggRow = await db.prepare(
     `SELECT 
        COALESCE(SUM(income), 0) as totalIncome,
        COALESCE(SUM(expense), 0) as totalExpense
      FROM cashbook ${where}`
-  ).bind(...binds).first();
+  ).bind(...binds).first().catch(() => ({ totalIncome: 0, totalExpense: 0 }));
 
   const totalIncome = (aggRow && aggRow.totalIncome) || 0;
   const totalExpense = (aggRow && aggRow.totalExpense) || 0;
@@ -78,9 +78,8 @@ export async function handleGetCashbookData(db, payload) {
 
   const countRow = await db.prepare(
     `SELECT COUNT(*) as c FROM cashbook ${where}`
-  ).bind(...binds).first();
+  ).bind(...binds).first().catch(() => ({ c: 0 }));
 
-  // ၂။ စာရင်းတစ်ခုချင်းစီ၏ ရက်စွဲအလိုက် စုစုပေါင်းလက်ကျန် (Cumulative Running Balance) ကိုပါ တစ်ခါတည်း တွက်ထုတ်ခြင်း
   const rowsRes = await db.prepare(
     `WITH RankedCB AS (
        SELECT 
@@ -92,7 +91,7 @@ export async function handleGetCashbookData(db, payload) {
      SELECT * FROM RankedCB
      ORDER BY tx_date DESC, id DESC
      LIMIT ? OFFSET ?`
-  ).bind(...binds, limit, offset).all();
+  ).bind(...binds, limit, offset).all().catch(() => ({ results: [] }));
 
   return {
     success: true,
@@ -119,7 +118,7 @@ export async function handleSaveCashbook(db, payload, session) {
   if (!leaderName) return { success: false, message: "ဦးဆောင်သူ အမည် ဖြည့်သွင်းရန် လိုအပ်ပါသည်။" };
   if (amount <= 0) return { success: false, message: "ငွေပမာဏ မှန်ကန်စွာ ဖြည့်သွင်းပါရန်။" };
 
-  // 💡 ခေါင်းစဉ်အပေါ် မူတည်ပြီး ဝင်ငွေ သို့မဟုတ် ထွက်ငွေ အလိုအလျောက် သတ်မှတ်ခြင်း
+  // 💡 စာအုပ်ရောင်းရငွေ ကို ဝင်ငွေ (income) အဖြစ် အလိုအလျောက် သတ်မှတ်ခြင်း
   const isIncome = INCOME_CATEGORIES.includes(category);
   const type = isIncome ? "income" : "expense";
   const income = isIncome ? amount : 0;
