@@ -11,7 +11,7 @@ function formatMoney(amount) {
 }
 
 /**
- * 💡 စာအုပ်မျက်နှာဖုံး + Mindfulness Reminder ပေါင်းစပ် Card (ဘယ်ဘက်ခြမ်း)
+ * စာအုပ်မျက်နှာဖုံး + Mindfulness Reminder ပေါင်းစပ် Card (ဘယ်ဘက်ခြမ်း)
  */
 function getMindfulnessWithBookHtml() {
   return `
@@ -88,13 +88,15 @@ function getMindfulnessWithBookHtml() {
 }
 
 /**
- * Top 3 KPI Boxes (ယောဂီစာရင်း vs ငွေစာရင်း ပြောင်းလဲပြသခြင်း)
+ * 💡 ထိပ်ဆုံး Box (၄) ခု Render ပြုလုပ်ခြင်း
  */
 function renderTopKpiCards(type, d) {
   if (type === "cash") {
-    const c = d.cashSummary || { totalIncome: 0, totalExpense: 0, balance: 0 };
+    const c = d.cashSummary || { totalIncome: 0, totalExpense: 0, balance: 0, categories: {} };
+    const incDonation = (c.categories && c.categories["အလှူရရှိ"] && c.categories["အလှူရရှိ"].income) || 0;
+
     return `
-      <div class="kpi-grid-container">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
         <div class="stats-card">
           <div style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
             <i class="fa-solid fa-arrow-down-long"></i>
@@ -124,13 +126,24 @@ function renderTopKpiCards(type, d) {
             <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #fbbf24; font-family: monospace;">${formatMoney(c.balance)}</h3>
           </div>
         </div>
+
+        <!-- 💡 ငွေစာရင်း အတွက် ၄ ခုမြောက် Box (အလှူရရှိငွေ) -->
+        <div class="stats-card">
+          <div style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+            <i class="fa-solid fa-hand-holding-heart"></i>
+          </div>
+          <div style="display: flex; flex-direction: column;">
+            <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">အလှူရရှိ (DONATION)</p>
+            <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #38bdf8; font-family: monospace;">+${formatMoney(incDonation)}</h3>
+          </div>
+        </div>
       </div>
     `;
   }
 
-  // Yogi KPI Cards (Default)
+  // 💡 ယောဂီ စာရင်း အတွက် ထိပ်ဆုံး Box (၄) ခု
   return `
-    <div class="kpi-grid-container">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
       <div class="stats-card">
         <div style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
           <i class="fa-solid fa-users"></i>
@@ -160,6 +173,17 @@ function renderTopKpiCards(type, d) {
           <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #f472b6; font-family: monospace;">${d.activeFemale || 0} ဦး</h3>
         </div>
       </div>
+
+      <!-- 💡 ယောဂီ အတွက် ၄ ခုမြောက် Box (ဦးဆောင်ဆွေးနွေး ယောဂီ) -->
+      <div class="stats-card">
+        <div style="background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3);">
+          <i class="fa-solid fa-user-tie"></i>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">ဦးဆောင်ယောဂီ (LEADERS)</p>
+          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #2dd4bf; font-family: monospace;">${(d.leaders && d.leaders.total) || 0} ဦး</h3>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -171,12 +195,10 @@ function renderRightTable(type, d) {
   if (type === "cash") {
     const cats = (d.cashSummary && d.cashSummary.categories) || {};
     
-    // ဝင်ငွေ ပစ္စည်းများ
     const incDonation = (cats["အလှူရရှိ"] && cats["အလှူရရှိ"].income) || 0;
     const incInterest = (cats["ဘဏ်တိုး"] && cats["ဘဏ်တိုး"].income) || 0;
     const subTotalIncome = incDonation + incInterest;
 
-    // ထွက်ငွေ ပစ္စည်းများ
     const expPrinting = (cats["ပုံနှိပ်တိုက်ပေးငွေ"] && cats["ပုံနှိပ်တိုက်ပေးငွေ"].expense) || 0;
     const expRetreat = (cats["တရားစခန်း အလှူငွေ"] && cats["တရားစခန်း အလှူငွေ"].expense) || 0;
     const expGeneral = (cats["အထွေထွေ အသုံးစရိတ်"] && cats["အထွေထွေ အသုံးစရိတ်"].expense) || 0;
@@ -204,7 +226,6 @@ function renderRightTable(type, d) {
                 </tr>
               </thead>
               <tbody>
-                <!-- ဝင်ငွေ ကဏ္ဍ -->
                 <tr style="background-color: rgba(16, 185, 129, 0.1); border-bottom: 1px solid rgba(16, 185, 129, 0.2);">
                   <td colspan="5" style="padding: 8px 14px; font-weight: 900; color: #34d399; font-size: 0.78rem;">
                     <i class="fa-solid fa-circle-down"></i> ဝင်ငွေ
@@ -224,7 +245,6 @@ function renderRightTable(type, d) {
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
                   <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(subTotalIncome)}</td>
                 </tr>
-                <!-- ဝင်ငွေပေါင်း -->
                 <tr style="background-color: rgba(16, 185, 129, 0.15); border-bottom: 2px solid rgba(16, 185, 129, 0.3);">
                   <td colspan="2" style="padding: 9px 14px; font-weight: 900; color: #34d399;">ဝင်ငွေပေါင်း</td>
                   <td style="padding: 9px 14px; text-align: right; font-weight: 900; color: #34d399; font-family: monospace;">+${formatMoney(subTotalIncome)}</td>
@@ -232,7 +252,6 @@ function renderRightTable(type, d) {
                   <td style="padding: 9px 14px; text-align: right; font-weight: 900; color: #fbbf24; font-family: monospace;">${formatMoney(subTotalIncome)}</td>
                 </tr>
 
-                <!-- ထွက်ငွေ ကဏ္ဍ -->
                 <tr style="background-color: rgba(244, 63, 94, 0.1); border-bottom: 1px solid rgba(244, 63, 94, 0.2);">
                   <td colspan="5" style="padding: 8px 14px; font-weight: 900; color: #f87171; font-size: 0.78rem;">
                     <i class="fa-solid fa-circle-up"></i> ထွက်ငွေ
@@ -259,7 +278,6 @@ function renderRightTable(type, d) {
                   <td style="padding: 9px 14px; text-align: right; color: #f87171; font-weight: bold; font-family: monospace;">-${formatMoney(expGeneral)}</td>
                   <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(netBalance)}</td>
                 </tr>
-                <!-- ထွက်ငွေပေါင်း -->
                 <tr style="background-color: rgba(244, 63, 94, 0.15); border-bottom: 2px solid rgba(244, 63, 94, 0.3);">
                   <td colspan="2" style="padding: 9px 14px; font-weight: 900; color: #f87171;">ထွက်ငွေပေါင်း</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
@@ -267,7 +285,6 @@ function renderRightTable(type, d) {
                   <td style="padding: 9px 14px; text-align: right; font-weight: 900; color: #fbbf24; font-family: monospace;">${formatMoney(netBalance)}</td>
                 </tr>
 
-                <!-- အောက်ဆုံး စုစုပေါင်း လက်ကျန်ငွေ -->
                 <tr style="background-color: rgba(245, 158, 11, 0.2); border-top: 2px solid #f59e0b;">
                   <td colspan="4" style="padding: 12px 14px; font-weight: 900; color: #fbbf24; font-size: 0.9rem;">
                     <i class="fa-solid fa-wallet"></i> လက်ကျန်ငွေ (NET BALANCE)
@@ -357,7 +374,6 @@ window.renderDashboard = async function (silent = false) {
   try {
     res = await window.callApi("getDashboardData", {});
     
-    // 💡 Backend တွင် cashSummary မပါလာသေးပါက အလိုအလျောက် တွက်ချက်ပေးမည့် Fallback စနစ်
     if (res && res.success && res.data && !res.data.cashSummary) {
       try {
         const cashRes = await window.callApi("getCashbookData", { limit: 500 });
@@ -395,7 +411,12 @@ window.renderDashboard = async function (silent = false) {
   container.innerHTML = `
     <div class="space-y-6 view-panel">
       
-      <!-- 💡 ပင်မစာမျက်နှာထိပ်ရှိ Tab ခလုတ် ၂ ခု (ယောဂီ စာရင်း vs ငွေစာရင်း) -->
+      <!-- 💡 ၁။ ထိပ်ဆုံးမှာ Box (၄) ခု ထားရှိခြင်း -->
+      <div id="dash-kpi-container">
+        ${renderTopKpiCards(currentTab, res.data)}
+      </div>
+
+      <!-- 💡 ၂။ Tab (၂) ခုကို Box (၄) ခု၏ အောက်တည့်တည့်သို့ ရွှေ့ပြောင်းထားခြင်း -->
       <div style="display: flex; gap: 0.5rem; background: #0c1220; padding: 0.4rem; border-radius: 1rem; border: 1px solid rgba(245, 158, 11, 0.25); width: fit-content;">
         <button onclick="switchDashboardTab('yogi')" 
           style="padding: 0.55rem 1.25rem; font-size: 0.8rem; font-weight: 900; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; gap: 0.5rem; ${currentTab === 'yogi' ? 'background: linear-gradient(90deg, #f59e0b, #d97706); color: #090d16; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);' : 'background: transparent; color: #94a3b8;'}">
@@ -410,15 +431,10 @@ window.renderDashboard = async function (silent = false) {
         </button>
       </div>
 
-      <!-- Top 3 KPI Cards -->
-      <div id="dash-kpi-container">
-        ${renderTopKpiCards(currentTab, res.data)}
-      </div>
-
-      <!-- 2-Column Grid: Left (Mindfulness + Book Cover) | Right (Table) -->
+      <!-- ၃။ အောက်ဘက် 2-Column Grid: ဘယ်ဘက် (စာအုပ်ပုံ + Mindfulness) | ညာဘက် (ဇယား) -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; align-items: stretch;">
         
-        <!-- Left Column: Mindfulness Reminder with Book Cover -->
+        <!-- ဘယ်ဘက်: Mindfulness Reminder with Book Cover -->
         <div style="display: flex; flex-direction: column; gap: 0.5rem; height: 100%;">
           <h3 style="margin: 0; font-size: 0.75rem; font-weight: 900; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
             <i class="fa-solid fa-dharmachakra"></i>
@@ -429,7 +445,7 @@ window.renderDashboard = async function (silent = false) {
           </div>
         </div>
 
-        <!-- Right Column: Table (Yogi Breakdown vs Cash Statement) -->
+        <!-- ညာဘက်: Table (Yogi Breakdown vs Cash Statement) -->
         <div id="dash-table-container" style="flex: 1;">
           ${renderRightTable(currentTab, res.data)}
         </div>
