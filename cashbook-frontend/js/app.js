@@ -83,7 +83,6 @@ window.startLiveSync = function () {
         const search = window.currentLeaderSearch || "";
         window.renderLeaders(page, search, true);
       }
-    // 💡 ၁။ ငွေစာရင်း (Cashbook) အတွက် Auto Live-Sync ထည့်သွင်းထားပါသည်
     } else if (currentTab === "cashbook" || currentTab === "cash") {
       if (typeof window.renderCashbook === "function") {
         const fromDate = document.getElementById("cash-from-date") ? document.getElementById("cash-from-date").value : "";
@@ -162,6 +161,9 @@ window.switchTab = function (tabName, param = null) {
   if (tabName === "home" || tabName === "dashboard") {
     if (pageTitleEl) pageTitleEl.innerText = "ပင်မစာမျက်နှာ";
     if (typeof window.renderDashboard === "function") window.renderDashboard();
+  } else if (tabName === "cashbook" || tabName === "cash") {
+    if (pageTitleEl) pageTitleEl.innerText = "ငွေစာရင်း (Cashbook)";
+    if (typeof window.renderCashbook === "function") window.renderCashbook();
   } else if (tabName === "level" || tabName === "yogi" || tabName === "stage") {
     const levelId = Number(param || 1);
     const currentLevelObj = sourceLevels.find(l => l.id === levelId);
@@ -175,10 +177,6 @@ window.switchTab = function (tabName, param = null) {
   } else if (tabName === "leaders" || tabName === "leader") {
     if (pageTitleEl) pageTitleEl.innerText = "ဦးဆောင်ဆွေးနွေး ယောဂီများ";
     if (typeof window.renderLeaders === "function") window.renderLeaders();
-  // 💡 ၂။ ငွေစာရင်း (Cashbook) Router ချိတ်ဆက်ခြင်း
-  } else if (tabName === "cashbook" || tabName === "cash") {
-    if (pageTitleEl) pageTitleEl.innerText = "ငွေစာရင်း (Cashbook)";
-    if (typeof window.renderCashbook === "function") window.renderCashbook();
   }
 };
 
@@ -190,10 +188,18 @@ function renderSidebar() {
   if (!nav) return;
 
   let html = `
+    <!-- ပင်မစာမျက်နှာ -->
     <button data-tab="home" onclick="switchTab('home')" class="nav-btn w-full text-left p-2.5 rounded-xl font-extrabold text-xs flex items-center gap-2.5 hover:bg-slate-800/80 transition cursor-pointer">
       <i class="fa-solid fa-house text-amber-400 text-sm shrink-0"></i>
       <span class="truncate">ပင်မစာမျက်နှာ</span>
     </button>
+
+    <!-- 💡 ငွေစာရင်း ကို ပင်မစာမျက်နှာအောက် ထိပ်ဆုံးသို့ ရွှေ့ပြောင်းထားပါသည် -->
+    <button data-tab="cashbook" onclick="switchTab('cashbook')" class="nav-btn w-full text-left p-2.5 rounded-xl font-extrabold text-xs flex items-center gap-2.5 hover:bg-slate-800/80 transition cursor-pointer">
+      <i class="fa-solid fa-wallet text-amber-400 text-sm shrink-0"></i>
+      <span class="truncate">ငွေစာရင်း</span>
+    </button>
+
     <p class="pt-3 pb-1 px-3 text-[10px] font-black text-amber-400/70 uppercase tracking-widest">ကမ္မဋ္ဌာန်း အဆင့်များ</p>
   `;
 
@@ -222,11 +228,6 @@ function renderSidebar() {
     <button data-tab="leaders" onclick="switchTab('leaders')" class="nav-btn w-full text-left p-2 rounded-xl font-bold text-xs flex items-center gap-2.5 hover:bg-slate-800/80 transition cursor-pointer">
       <i class="fa-solid fa-user-tie text-indigo-400 text-sm shrink-0"></i>
       <span class="truncate">ဦးဆောင်ဆွေးနွေး ယောဂီ</span>
-    </button>
-    <!-- 💡 ၃။ ဘယ်ဘက် Menu တွင် "ငွေစာရင်း" ခလုတ် ထည့်သွင်းထားပါသည် -->
-    <button data-tab="cashbook" onclick="switchTab('cashbook')" class="nav-btn w-full text-left p-2 rounded-xl font-bold text-xs flex items-center gap-2.5 hover:bg-slate-800/80 transition cursor-pointer">
-      <i class="fa-solid fa-wallet text-amber-400 text-sm shrink-0"></i>
-      <span class="truncate">ငွေစာရင်း</span>
     </button>
   `;
 
