@@ -23,12 +23,16 @@
     })();
   </script>
 
+  <!-- 💡 App Icons (SVG ရော PNG ပါ ထည့်သွင်းထားပြီး iPhone အတွက် ပံ့ပိုးပေးထားခြင်း) -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
   
   <!-- Tailwind Engine -->
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- FontAwesome 6.7.2 CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
 
@@ -37,32 +41,40 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
+    /* 💡 မြန်မာဖောင့်ကြောင့် FontAwesome Icon များ မပျောက်စေရန် အထူးကာကွယ်ပေးသည့် CSS */
+    .fa, .fas, .far, .fal, .fab, .fa-solid, .fa-regular, .fa-brands {
+      font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      display: inline-block;
+      font-style: normal;
+      font-variant: normal;
+      text-rendering: auto;
+      line-height: 1;
+    }
+
     html.is-authed #login-overlay { display: none !important; }
     html.is-authed #erp-workspace { display: flex !important; }
     html.not-authed #login-overlay { display: flex !important; }
     html.not-authed #erp-workspace { display: none !important; }
 
-    /* 💡 အလွှာများ မမှားစေရန် တိကျစွာ သတ်မှတ်ပေးခြင်း (Sidebar ကို အပေါ်ဆုံးတင်ခြင်း) */
+    /* 💡 ဖုန်းမျက်နှာပြင်တွင် Sidebar ကို သီးခြား Drawer အဖြစ် တင်ပေးခြင်း */
     #main-sidebar {
       z-index: 60 !important;
     }
     #sidebar-backdrop {
       z-index: 50 !important;
     }
-    #mobile-menu-btn {
-      display: inline-flex !important;
-    }
 
+    /* Desktop (1280px အထက်) တွင် မူလအတိုင်း ဘေးကပ်လျက် ပေါ်စေခြင်း */
     @media (min-width: 1280px) {
-      #mobile-menu-btn {
-        display: none !important;
-      }
       #main-sidebar {
         transform: translateX(0) !important;
         position: relative !important;
         z-index: 20 !important;
       }
       #sidebar-backdrop {
+        display: none !important;
+      }
+      #mobile-menu-btn {
         display: none !important;
       }
     }
@@ -76,6 +88,11 @@
       user-select: none;
       -webkit-user-select: none;
     }
+
+    /* iPhone Notch & Dynamic Island အတွက် နေရာချန်ပေးခြင်း */
+    header {
+      padding-top: max(env(safe-area-inset-top), 0.5rem);
+    }
   </style>
 </head>
 
@@ -83,7 +100,7 @@
 
   <!-- Login Overlay -->
   <div id="login-overlay" class="fixed inset-0 bg-[#070a12]/95 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-    <div class="login-card-box relative space-y-6">
+    <div class="login-card-box relative space-y-6 w-full max-w-sm mx-auto">
       <div class="text-center relative z-10">
         <div class="inline-flex items-center justify-center p-4 rounded-2xl bg-gradient-to-b from-amber-500/20 to-amber-600/10 border border-amber-500/40 shadow-lg shadow-amber-500/10 mb-3">
           <i class="fa-solid fa-dharmachakra text-4xl text-amber-400 filter drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]"></i>
@@ -125,61 +142,65 @@
   <!-- Main Workspace -->
   <div id="erp-workspace" class="hidden h-screen w-screen flex flex-row overflow-hidden bg-[#090d16] relative">
     
-    <!-- 💡 Mobile & Tablet Backdrop Overlay (အောက်လွှာ z-50 သို့ ထားရှိခြင်း) -->
-    <div id="sidebar-backdrop" onclick="toggleMobileSidebar(true)" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden cursor-pointer transition-opacity"></div>
+    <!-- 💡 Mobile & Tablet Backdrop Overlay (ဖုန်းတွင် အပြင်ဘက်ကို မှောင်စေမည့်အလွှာ) -->
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar(true)" 
+         class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden cursor-pointer transition-opacity"></div>
 
-    <!-- 💡 Left Sidebar Drawer (အပေါ်ဆုံးလွှာ z-60 သို့ ထားရှိခြင်း) -->
+    <!-- 💡 Left Sidebar Drawer (ဖုန်းတွင် ဝှက်ထားမည်၊ ခလုတ်နှိပ်မှ Slide ဖြစ်ထွက်လာမည်) -->
     <aside id="main-sidebar" 
-      class="w-64 bg-[#0c1220] border-r border-amber-500/20 flex flex-col h-full shrink-0 transition-transform duration-300 ease-in-out fixed inset-y-0 left-0 -translate-x-full shadow-[20px_0_50px_rgba(0,0,0,0.8)]">
+      class="w-72 sm:w-64 bg-[#0c1220] border-r border-amber-500/20 flex flex-col h-full shrink-0 transition-transform duration-300 ease-in-out fixed inset-y-0 left-0 -translate-x-full shadow-[20px_0_50px_rgba(0,0,0,0.9)]">
+      
       <div class="h-[64px] px-4 border-b border-amber-500/20 flex items-center justify-between bg-[#0e172a] shrink-0">
-        <div class="flex items-center gap-2 font-black text-xs sm:text-sm text-amber-400 min-w-0 overflow-hidden">
-          <i class="fa-solid fa-dharmachakra text-amber-400 text-base shrink-0 filter drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]"></i>
+        <div class="flex items-center gap-2.5 font-black text-sm text-amber-400 min-w-0 overflow-hidden">
+          <i class="fa-solid fa-dharmachakra text-amber-400 text-lg shrink-0 filter drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]"></i>
           <span class="truncate font-extrabold whitespace-nowrap tracking-wide">Zoom ယောဂီစာရင်း</span>
         </div>
+        
         <div class="flex items-center gap-1">
-          <!-- Sidebar ပိတ်မည့် (X) ခလုတ် -->
-          <button onclick="toggleMobileSidebar(true)" class="xl:hidden text-slate-400 hover:text-white p-2 rounded-lg cursor-pointer hover:bg-slate-800/60" title="Close Sidebar">
-            <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+          <!-- Sidebar ပိတ်မည့် (X) ခလုတ် (ဖုန်းတွင်သာ ပေါ်မည်) -->
+          <button onclick="toggleMobileSidebar(true)" 
+                  class="xl:hidden text-slate-400 hover:text-white p-2 rounded-lg cursor-pointer hover:bg-slate-800/60 transition" 
+                  title="Close Sidebar">
+            <i class="fa-solid fa-xmark text-lg text-slate-300"></i>
           </button>
+          
           <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 transition p-2 rounded-lg shrink-0 hover:bg-slate-800/60 cursor-pointer" title="Logout">
-            <i class="fa-solid fa-power-off text-xs"></i>
+            <i class="fa-solid fa-power-off text-sm"></i>
           </button>
         </div>
       </div>
-      <nav class="flex-1 px-2.5 py-3 space-y-1.5 overflow-y-auto" id="sidebar-nav"></nav>
+
+      <!-- Navigation Link များ ထည့်မည့်နေရာ -->
+      <nav class="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto" id="sidebar-nav"></nav>
     </aside>
 
-    <!-- Right Content Area -->
-    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#090d16]">
+    <!-- Right Content Area (ဖုန်းတွင် 100% Screen အပြည့်ယူမည်) -->
+    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#090d16] w-full">
       
       <!-- Top Navigation Header -->
       <header class="h-[64px] bg-[#0c1220] border-b border-amber-500/20 px-3 sm:px-6 flex items-center justify-between shrink-0 z-30 gap-2">
         <div class="flex items-center gap-3 min-w-0">
           
-          <!-- လက်သုံးချောင်း Hamburger Menu ခလုတ် -->
+          <!-- 💡 လက်သုံးချောင်း Hamburger Menu ခလုတ် (ဖုန်းတွင်သာ ပေါ်မည်) -->
           <button id="mobile-menu-btn" onclick="toggleMobileSidebar()" 
-            class="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500/25 border-2 border-amber-400 text-amber-400 active:scale-95 transition shadow-lg shrink-0 cursor-pointer hover:bg-amber-500/40" 
+            class="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-400 active:scale-95 transition shadow-lg shrink-0 cursor-pointer hover:bg-amber-500/30" 
             title="Open Menu" aria-label="Open Menu">
-            <svg class="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
+            <i class="fa-solid fa-bars text-lg text-amber-300"></i>
           </button>
 
           <h1 id="page-title" class="text-base sm:text-lg font-black text-amber-300/90 truncate tracking-wide">ပင်မစာမျက်နှာ</h1>
         </div>
 
-        <!-- User Badge & Live Clock -->
+        <!-- Live Clock & User Badge -->
         <div class="text-[11px] sm:text-xs font-bold text-amber-300 bg-[#070d18] border border-amber-500/30 px-3 py-1.5 rounded-xl shrink-0 shadow-inner flex items-center gap-2 font-mono tracking-wide">
           <span id="header-live-datetime" class="text-amber-300/90 font-extrabold hidden sm:inline">--</span>
           <span class="text-amber-500/60 font-black hidden sm:inline">|</span>
-          <i class="fa-solid fa-user text-emerald-400 text-xs sm:hidden"></i>
-          <span id="live-user-name" class="text-emerald-400 font-extrabold truncate max-w-[100px] sm:max-w-none">Admin</span>
+          <i class="fa-solid fa-user text-emerald-400 text-xs"></i>
+          <span id="live-user-name" class="text-emerald-400 font-extrabold truncate max-w-[90px] sm:max-w-none">Admin</span>
         </div>
       </header>
 
-      <!-- Main Content -->
+      <!-- Main Content (အချက်အလက် စာရင်းများ) -->
       <main class="flex-1 p-3 sm:p-6 overflow-y-auto relative bg-[#090d16]">
         <div id="view-container" class="max-w-7xl mx-auto w-full"></div>
       </main>
@@ -194,8 +215,26 @@
 
   <div id="toast-container" class="fixed bottom-5 right-5 z-[200] flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- Global Header Clock & PWA Register -->
+  <!-- 💡 JavaScript Logic: Menu အဖွင့်/အပိတ် နှင့် Clock စနစ် -->
   <script>
+    // Mobile Sidebar အဖွင့်/အပိတ် ထိန်းချုပ်သည့် Function
+    window.toggleMobileSidebar = function(forceClose) {
+      const sidebar = document.getElementById('main-sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (!sidebar) return;
+
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+
+      if (forceClose === true || !isClosed) {
+        sidebar.classList.add('-translate-x-full');
+        if (backdrop) backdrop.classList.add('hidden');
+      } else {
+        sidebar.classList.remove('-translate-x-full');
+        if (backdrop) backdrop.classList.remove('hidden');
+      }
+    };
+
+    // Live Clock Function
     function startHeaderClock() {
       function updateClock() {
         const datetimeEl = document.getElementById('header-live-datetime');
@@ -224,6 +263,7 @@
       setInterval(updateClock, 1000);
     }
 
+    // PWA Service Worker Register
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('sw.js').then(function(reg) {
@@ -234,7 +274,19 @@
       });
     }
 
-    document.addEventListener('DOMContentLoaded', startHeaderClock);
+    // ဖုန်းတွင် Menu Link တစ်ခုခုနှိပ်ပါက Sidebar အလိုအလျောက် ပိတ်သွားစေရန်
+    document.addEventListener('DOMContentLoaded', () => {
+      startHeaderClock();
+      
+      const nav = document.getElementById('sidebar-nav');
+      if (nav) {
+        nav.addEventListener('click', (e) => {
+          if (window.innerWidth < 1280 && (e.target.closest('a') || e.target.closest('button'))) {
+            window.toggleMobileSidebar(true);
+          }
+        });
+      }
+    });
   </script>
 
   <!-- Script Inclusions -->
@@ -245,9 +297,7 @@
   <script src="js/leaders.js"></script>
   <script src="js/yogi.js"></script>
   <script src="js/yogi-summary.js"></script>
-  <!-- 💡 ငွေစာရင်း (Cashbook) Script ချိတ်ဆက်မှု ထည့်သွင်းထားပါသည် -->
   <script src="js/cashbook.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
-
