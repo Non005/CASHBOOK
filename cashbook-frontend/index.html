@@ -23,7 +23,7 @@
     })();
   </script>
 
-  <!-- 💡 App Icons (SVG ရော PNG ပါ ထည့်သွင်းထားပြီး iPhone အတွက် ပံ့ပိုးပေးထားခြင်း) -->
+  <!-- 💡 App Icons (manifest.json နှင့် နာမည်ညှိထားပြီး ဖြစ်သည်) -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
   <link rel="apple-touch-icon" href="favicon-192.png">
@@ -55,29 +55,6 @@
     html.is-authed #erp-workspace { display: flex !important; }
     html.not-authed #login-overlay { display: flex !important; }
     html.not-authed #erp-workspace { display: none !important; }
-
-    /* 💡 ဖုန်းမျက်နှာပြင်တွင် Sidebar ကို သီးခြား Drawer အဖြစ် တင်ပေးခြင်း */
-    #main-sidebar {
-      z-index: 60 !important;
-    }
-    #sidebar-backdrop {
-      z-index: 50 !important;
-    }
-
-    /* Desktop (1280px အထက်) တွင် မူလအတိုင်း ဘေးကပ်လျက် ပေါ်စေခြင်း */
-    @media (min-width: 1280px) {
-      #main-sidebar {
-        transform: translateX(0) !important;
-        position: relative !important;
-        z-index: 20 !important;
-      }
-      #sidebar-backdrop {
-        display: none !important;
-      }
-      #mobile-menu-btn {
-        display: none !important;
-      }
-    }
 
     * {
       touch-action: manipulation;
@@ -142,13 +119,13 @@
   <!-- Main Workspace -->
   <div id="erp-workspace" class="hidden h-screen w-screen flex flex-row overflow-hidden bg-[#090d16] relative">
     
-    <!-- 💡 Mobile & Tablet Backdrop Overlay (ဖုန်းတွင် အပြင်ဘက်ကို မှောင်စေမည့်အလွှာ) -->
+    <!-- Mobile & Tablet Backdrop Overlay -->
     <div id="sidebar-backdrop" onclick="toggleMobileSidebar(true)" 
          class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden cursor-pointer transition-opacity"></div>
 
-    <!-- 💡 Left Sidebar Drawer (ဖုန်းတွင် ဝှက်ထားမည်၊ ခလုတ်နှိပ်မှ Slide ဖြစ်ထွက်လာမည်) -->
+    <!-- Left Sidebar Drawer -->
     <aside id="main-sidebar" 
-      class="w-72 sm:w-64 bg-[#0c1220] border-r border-amber-500/20 flex flex-col h-full shrink-0 transition-transform duration-300 ease-in-out fixed inset-y-0 left-0 -translate-x-full shadow-[20px_0_50px_rgba(0,0,0,0.9)]">
+      class="w-72 sm:w-64 bg-[#0c1220] border-r border-amber-500/20 flex flex-col h-full shrink-0">
       
       <div class="h-[64px] px-4 border-b border-amber-500/20 flex items-center justify-between bg-[#0e172a] shrink-0">
         <div class="flex items-center gap-2.5 font-black text-sm text-amber-400 min-w-0 overflow-hidden">
@@ -174,14 +151,14 @@
       <nav class="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto" id="sidebar-nav"></nav>
     </aside>
 
-    <!-- Right Content Area (ဖုန်းတွင် 100% Screen အပြည့်ယူမည်) -->
-    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#090d16] w-full">
+    <!-- 💡 Right Content Area (id="main-content-area" ထည့်ပေးထားပါသည်) -->
+    <div id="main-content-area" class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#090d16] w-full">
       
       <!-- Top Navigation Header -->
       <header class="h-[64px] bg-[#0c1220] border-b border-amber-500/20 px-3 sm:px-6 flex items-center justify-between shrink-0 z-30 gap-2">
         <div class="flex items-center gap-3 min-w-0">
           
-          <!-- 💡 လက်သုံးချောင်း Hamburger Menu ခလုတ် (ဖုန်းတွင်သာ ပေါ်မည်) -->
+          <!-- လက်သုံးချောင်း Hamburger Menu ခလုတ် -->
           <button id="mobile-menu-btn" onclick="toggleMobileSidebar()" 
             class="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-400 active:scale-95 transition shadow-lg shrink-0 cursor-pointer hover:bg-amber-500/30" 
             title="Open Menu" aria-label="Open Menu">
@@ -215,26 +192,26 @@
 
   <div id="toast-container" class="fixed bottom-5 right-5 z-[200] flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- 💡 JavaScript Logic: Menu အဖွင့်/အပိတ် နှင့် Clock စနစ် -->
+  <!-- 💡 JavaScript Logic: sidebar-open Class နှင့် ညှိထားသော Menu Toggle -->
   <script>
-    // Mobile Sidebar အဖွင့်/အပိတ် ထိန်းချုပ်သည့် Function
-    window.toggleMobileSidebar = function(forceClose) {
+    window.toggleMobileSidebar = function(forceClose = false) {
       const sidebar = document.getElementById('main-sidebar');
       const backdrop = document.getElementById('sidebar-backdrop');
       if (!sidebar) return;
 
-      const isClosed = sidebar.classList.contains('-translate-x-full');
+      const isOpen = sidebar.classList.contains('sidebar-open');
 
-      if (forceClose === true || !isClosed) {
+      if (forceClose || isOpen) {
+        sidebar.classList.remove('sidebar-open', 'translate-x-0');
         sidebar.classList.add('-translate-x-full');
         if (backdrop) backdrop.classList.add('hidden');
       } else {
+        sidebar.classList.add('sidebar-open', 'translate-x-0');
         sidebar.classList.remove('-translate-x-full');
         if (backdrop) backdrop.classList.remove('hidden');
       }
     };
 
-    // Live Clock Function
     function startHeaderClock() {
       function updateClock() {
         const datetimeEl = document.getElementById('header-live-datetime');
@@ -263,7 +240,6 @@
       setInterval(updateClock, 1000);
     }
 
-    // PWA Service Worker Register
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('sw.js').then(function(reg) {
@@ -274,7 +250,6 @@
       });
     }
 
-    // ဖုန်းတွင် Menu Link တစ်ခုခုနှိပ်ပါက Sidebar အလိုအလျောက် ပိတ်သွားစေရန်
     document.addEventListener('DOMContentLoaded', () => {
       startHeaderClock();
       
