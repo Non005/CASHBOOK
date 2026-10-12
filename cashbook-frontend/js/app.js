@@ -83,12 +83,16 @@ window.startLiveSync = function () {
         const search = window.currentLeaderSearch || "";
         window.renderLeaders(page, search, true);
       }
+    // 💡 ငွေစာရင်း Auto-Refresh တွင် Next နှိပ်ထားသော Page မပျောက်စေရန် ပြင်ဆင်ချက်
     } else if (currentTab === "cashbook" || currentTab === "cash") {
       if (typeof window.renderCashbook === "function") {
         const fromDate = document.getElementById("cash-from-date") ? document.getElementById("cash-from-date").value : "";
         const toDate = document.getElementById("cash-to-date") ? document.getElementById("cash-to-date").value : "";
         const search = document.getElementById("cash-search-input") ? document.getElementById("cash-search-input").value.trim() : "";
-        window.renderCashbook(1, search, fromDate, toDate, true);
+        
+        // 💡 မူလက '1' ဟု Hardcode ရေးထားသည်ကို လက်ရှိ Page နံပါတ်အတိုင်း အတိအကျ သုံးစေပါသည်
+        const page = window.currentCashPage || 1;
+        window.renderCashbook(page, search, fromDate, toDate, true);
       }
     }
   }, 5000);
@@ -163,7 +167,7 @@ window.switchTab = function (tabName, param = null) {
     if (typeof window.renderDashboard === "function") window.renderDashboard();
   } else if (tabName === "cashbook" || tabName === "cash") {
     if (pageTitleEl) pageTitleEl.innerText = "ငွေစာရင်း (Cashbook)";
-    if (typeof window.renderCashbook === "function") window.renderCashbook();
+    if (typeof window.renderCashbook === "function") window.renderCashbook(window.currentCashPage || 1);
   } else if (tabName === "level" || tabName === "yogi" || tabName === "stage") {
     const levelId = Number(param || 1);
     const currentLevelObj = sourceLevels.find(l => l.id === levelId);
@@ -181,7 +185,7 @@ window.switchTab = function (tabName, param = null) {
 };
 
 /**
- * 💡 Renders Dynamic Sidebar Navigation (ငွေစာရင်း ကဏ္ဍ ခေါင်းစဉ်သေး ထည့်သွင်းထားသည်)
+ * Renders Dynamic Sidebar Navigation
  */
 function renderSidebar() {
   const nav = document.getElementById("sidebar-nav");
@@ -194,7 +198,7 @@ function renderSidebar() {
       <span class="truncate">ပင်မစာမျက်နှာ</span>
     </button>
 
-    <!-- 💡 ၁။ ငွေစာရင်း အတွက် သီးသန့် ခေါင်းစဉ်သေး (ကမ္မဋ္ဌာန်းအဆင့်များလို ပုံစံတူ) -->
+    <!-- 💡 ငွေစာရင်း အတွက် သီးသန့် ခေါင်းစဉ်သေး -->
     <p class="pt-3 pb-1 px-3 text-[10px] font-black text-amber-400/70 uppercase tracking-widest">ငွေစာရင်း ကဏ္ဍ</p>
     <button data-tab="cashbook" onclick="switchTab('cashbook')" class="nav-btn w-full text-left p-2.5 rounded-xl font-extrabold text-xs flex items-center gap-2.5 hover:bg-slate-800/80 transition cursor-pointer">
       <i class="fa-solid fa-wallet text-amber-400 text-sm shrink-0"></i>
