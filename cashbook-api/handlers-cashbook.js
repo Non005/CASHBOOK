@@ -4,9 +4,16 @@
  * ========================================================================
  */
 
-// 💡 ဝင်ငွေစာရင်းထဲတွင် "စာအုပ်ရောင်းရငွေ" ထည့်သွင်းထားပါသည်
+// 💡 ဝင်ငွေ/ထွက်ငွေ ခေါင်းစဉ်များ (စာလုံးပေါင်း space ကွာဟမှုများပါ အဆင်ပြေစေရန် စီစဉ်ထားသည်)
 const INCOME_CATEGORIES = ["အလှူရရှိ", "အလှူငွေ", "စာအုပ်ရောင်းရငွေ", "ဘဏ်တိုး"];
-const EXPENSE_CATEGORIES = ["ပုံနှိပ်တိုက်ပေးငွေ", "တရားစခန်း အလှူငွေ", "အထွေထွေ အသုံးစရိတ်"];
+const EXPENSE_CATEGORIES = [
+  "ပုံနှိပ်တိုက်ပေးငွေ",
+  "ပုံနှိပ်တိုက်ထုတ်ပေးငွေ",
+  "တရားစခန်းအလှူငွေ",
+  "တရားစခန်း အလှူငွေ",
+  "အထွေထွေအသုံးစရိတ်",
+  "အထွေထွေ အသုံးစရိတ်"
+];
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -16,6 +23,10 @@ function genId(prefix) {
   const t = Date.now().toString(36);
   const r = Math.random().toString(36).slice(2, 8);
   return `${prefix}-${t}-${r}`.toUpperCase();
+}
+
+function cleanCat(str) {
+  return String(str || "").replace(/\s+/g, "").trim();
 }
 
 function toCashRow(r) {
@@ -65,21 +76,25 @@ export async function handleGetCashbookData(db, payload) {
     binds.push(toDate);
   }
 
+  // 💡 ၁။ စုစုပေါင်း ဝင်ငွေ၊ ထွက်ငွေ နှင့် စာအုပ်ရောင်းရငွေ အားလုံးကို DB ထဲမှ တိုက်ရိုက် အတိအကျ ပေါင်းထုတ်ခြင်း
   const aggRow = await db.prepare(
     `SELECT 
        COALESCE(SUM(income), 0) as totalIncome,
-       COALESCE(SUM(expense), 0) as totalExpense
+       COALESCE(SUM(expense), 0) as totalExpense,
+       COALESCE(SUM(CASE WHEN REPLACE(category, ' ', '') = 'စာအုပ်ရောင်းရငွေ' THEN income ELSE 0 END), 0) as totalBookSales
      FROM cashbook ${where}`
-  ).bind(...binds).first().catch(() => ({ totalIncome: 0, totalExpense: 0 }));
+  ).bind(...binds).first().catch(() => ({ totalIncome: 0, totalExpense: 0, totalBookSales: 0 }));
 
   const totalIncome = (aggRow && aggRow.totalIncome) || 0;
   const totalExpense = (aggRow && aggRow.totalExpense) || 0;
+  const totalBookSales = (aggRow && aggRow.totalBookSales) || 0;
   const balance = totalIncome - totalExpense;
 
   const countRow = await db.prepare(
     `SELECT COUNT(*) as c FROM cashbook ${where}`
   ).bind(...binds).first().catch(() => ({ c: 0 }));
 
+  // Cumulative Running Balance (လက်ကျန်ငွေ) တွက်ချက်ခြင်း
   const rowsRes = await db.prepare(
     `WITH RankedCB AS (
        SELECT 
@@ -102,6 +117,7 @@ export async function handleGetCashbookData(db, payload) {
       limit,
       totalIncome,
       totalExpense,
+      totalBookSales, // 💡 Box ၄ အတွက် စာအုပ်ရောင်းရငွေ စုစုပေါင်း
       balance
     }
   };
@@ -118,8 +134,8 @@ export async function handleSaveCashbook(db, payload, session) {
   if (!leaderName) return { success: false, message: "ဦးဆောင်သူ အမည် ဖြည့်သွင်းရန် လိုအပ်ပါသည်။" };
   if (amount <= 0) return { success: false, message: "ငွေပမာဏ မှန်ကန်စွာ ဖြည့်သွင်းပါရန်။" };
 
-  // 💡 စာအုပ်ရောင်းရငွေ ကို ဝင်ငွေ (income) အဖြစ် အလိုအလျောက် သတ်မှတ်ခြင်း
-  const isIncome = INCOME_CATEGORIES.includes(category);
+  // 💡 Space စာလုံးကပ်/ခွာ မည်သို့ပင်ဖြစ်စေ ဝင်ငွေ/ထွက်ငွေ တိကျစွာ ခွဲခြားသတ်မှတ်ခြင်း
+  const isIncome = INCOME_CATEGORIES.some(c => cleanCat(c) === cleanCat(category));
   const type = isIncome ? "income" : "expense";
   const income = isIncome ? amount : 0;
   const expense = isIncome ? 0 : amount;
@@ -154,7 +170,7 @@ export async function handleUpdateCashbook(db, payload) {
     return { success: false, message: "အချက်အလက်များ ပြည့်စုံစွာ ဖြည့်သွင်းပါ။" };
   }
 
-  const isIncome = INCOME_CATEGORIES.includes(category);
+  const isIncome = INCOME_CATEGORIES.some(c => cleanCat(c) === cleanCat(category));
   const type = isIncome ? "income" : "expense";
   const income = isIncome ? amount : 0;
   const expense = isIncome ? 0 : amount;
@@ -195,4 +211,46 @@ export async function handleDeleteCashbook(db, payload, session) {
   if (!id) return { success: false, message: "ID မတွေ့ပါ။" };
   await db.prepare("DELETE FROM cashbook WHERE id=?").bind(id).run();
   return { success: true, message: "ငွေစာရင်း ဖျက်ပြီးပါပြီ။" };
+}
+
+/**
+ * 💡 Excel Import အစုလိုက် သွင်းနိုင်သော Handler
+ */
+export async function handleImportCashbook(db, payload, session) {
+  const rows = Array.isArray(payload.rows) ? payload.rows : [];
+  if (!rows.length) return { success: false, message: "Import လုပ်ရန် ဒေတာ မတွေ့ပါ။" };
+
+  const now = new Date().toISOString();
+  let inserted = 0;
+  const stmts = [];
+
+  for (const r of rows) {
+    const description = String(r.description || "").trim();
+    const amount = Math.abs(Number(r.amount || 0));
+    if (!description || amount <= 0) continue;
+
+    const category = r.category || "အလှူရရှိ";
+    const isIncome = INCOME_CATEGORIES.some(c => cleanCat(c) === cleanCat(category));
+    const type = isIncome ? "income" : "expense";
+    const income = isIncome ? amount : 0;
+    const expense = isIncome ? 0 : amount;
+    const uniqueId = genId("CB");
+    const txDate = r.txDate || todayStr();
+
+    stmts.push(
+      db.prepare(
+        `INSERT INTO cashbook
+          (unique_id, tx_date, category, description, type, income, expense, leader_name, created_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        uniqueId, txDate, category, description, type,
+        income, expense, r.leaderName || "Admin",
+        session ? session.u : "System", now, now
+      )
+    );
+    inserted++;
+  }
+
+  if (stmts.length) await db.batch(stmts);
+  return { success: true, message: `${inserted} ခု Import အောင်မြင်ပါသည်။`, count: inserted };
 }
