@@ -23,7 +23,7 @@
     })();
   </script>
 
-  <!-- 💡 App Icons (manifest.json နှင့် နာမည်ညှိထားပြီး ဖြစ်သည်) -->
+  <!-- App Icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
   <link rel="apple-touch-icon" href="favicon-192.png">
@@ -38,10 +38,11 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <!-- 💡 defer တပ်ဆင်ထားသဖြင့် စာမျက်နှာပွင့်တာ မနှေးတော့ပါ -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
-    /* 💡 မြန်မာဖောင့်ကြောင့် FontAwesome Icon များ မပျောက်စေရန် အထူးကာကွယ်ပေးသည့် CSS */
     .fa, .fas, .far, .fal, .fab, .fa-solid, .fa-regular, .fa-brands {
       font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
       display: inline-block;
@@ -66,7 +67,6 @@
       -webkit-user-select: none;
     }
 
-    /* iPhone Notch & Dynamic Island အတွက် နေရာချန်ပေးခြင်း */
     header {
       padding-top: max(env(safe-area-inset-top), 0.5rem);
     }
@@ -120,13 +120,11 @@
   <div id="erp-workspace" class="hidden h-screen w-screen flex flex-row overflow-hidden bg-[#090d16] relative">
     
     <!-- Mobile & Tablet Backdrop Overlay -->
-    <div id="sidebar-backdrop" onclick="toggleMobileSidebar(true)" 
-         class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden cursor-pointer transition-opacity"></div>
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar(true)" style="display: none !important;"
+         class="fixed inset-0 bg-black/75 backdrop-blur-sm cursor-pointer transition-opacity"></div>
 
     <!-- Left Sidebar Drawer -->
-    <aside id="main-sidebar" 
-      class="w-72 sm:w-64 bg-[#0c1220] border-r border-amber-500/20 flex flex-col h-full shrink-0">
-      
+    <aside id="main-sidebar" class="bg-[#0c1220] border-r border-amber-500/20 flex flex-col h-full shrink-0">
       <div class="h-[64px] px-4 border-b border-amber-500/20 flex items-center justify-between bg-[#0e172a] shrink-0">
         <div class="flex items-center gap-2.5 font-black text-sm text-amber-400 min-w-0 overflow-hidden">
           <i class="fa-solid fa-dharmachakra text-amber-400 text-lg shrink-0 filter drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]"></i>
@@ -134,42 +132,32 @@
         </div>
         
         <div class="flex items-center gap-1">
-          <!-- Sidebar ပိတ်မည့် (X) ခလုတ် (ဖုန်းတွင်သာ ပေါ်မည်) -->
-          <button onclick="toggleMobileSidebar(true)" 
-                  class="xl:hidden text-slate-400 hover:text-white p-2 rounded-lg cursor-pointer hover:bg-slate-800/60 transition" 
-                  title="Close Sidebar">
+          <button onclick="toggleMobileSidebar(true)" class="xl:hidden text-slate-400 hover:text-white p-2 rounded-lg cursor-pointer" title="Close Sidebar">
             <i class="fa-solid fa-xmark text-lg text-slate-300"></i>
           </button>
-          
           <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 transition p-2 rounded-lg shrink-0 hover:bg-slate-800/60 cursor-pointer" title="Logout">
             <i class="fa-solid fa-power-off text-sm"></i>
           </button>
         </div>
       </div>
-
-      <!-- Navigation Link များ ထည့်မည့်နေရာ -->
       <nav class="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto" id="sidebar-nav"></nav>
     </aside>
 
-    <!-- 💡 Right Content Area (id="main-content-area" ထည့်ပေးထားပါသည်) -->
+    <!-- Right Content Area -->
     <div id="main-content-area" class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#090d16] w-full">
       
       <!-- Top Navigation Header -->
       <header class="h-[64px] bg-[#0c1220] border-b border-amber-500/20 px-3 sm:px-6 flex items-center justify-between shrink-0 z-30 gap-2">
         <div class="flex items-center gap-3 min-w-0">
-          
-          <!-- လက်သုံးချောင်း Hamburger Menu ခလုတ် -->
           <button id="mobile-menu-btn" onclick="toggleMobileSidebar()" 
-            class="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-400 active:scale-95 transition shadow-lg shrink-0 cursor-pointer hover:bg-amber-500/30" 
-            title="Open Menu" aria-label="Open Menu">
+            class="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-400 active:scale-95 transition shadow-lg shrink-0 cursor-pointer" 
+            title="Open Menu">
             <i class="fa-solid fa-bars text-lg text-amber-300"></i>
           </button>
-
           <h1 id="page-title" class="text-base sm:text-lg font-black text-amber-300/90 truncate tracking-wide">ပင်မစာမျက်နှာ</h1>
         </div>
 
-        <!-- Live Clock & User Badge -->
-        <div class="text-[11px] sm:text-xs font-bold text-amber-300 bg-[#070d18] border border-amber-500/30 px-3 py-1.5 rounded-xl shrink-0 shadow-inner flex items-center gap-2 font-mono tracking-wide">
+        <div class="text-[11px] sm:text-xs font-bold text-amber-300 bg-[#070d18] border border-amber-500/30 px-3 py-1.5 rounded-xl shrink-0 flex items-center gap-2 font-mono">
           <span id="header-live-datetime" class="text-amber-300/90 font-extrabold hidden sm:inline">--</span>
           <span class="text-amber-500/60 font-black hidden sm:inline">|</span>
           <i class="fa-solid fa-user text-emerald-400 text-xs"></i>
@@ -177,7 +165,7 @@
         </div>
       </header>
 
-      <!-- Main Content (အချက်အလက် စာရင်းများ) -->
+      <!-- Main Content -->
       <main class="flex-1 p-3 sm:p-6 overflow-y-auto relative bg-[#090d16]">
         <div id="view-container" class="max-w-7xl mx-auto w-full"></div>
       </main>
@@ -185,15 +173,36 @@
 
   </div>
 
-  <div id="loading-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[150] flex flex-col items-center justify-center hidden">
+  <!-- 💡 style="display: none !important;" ထည့်သွင်းထားသော Loading Overlay -->
+  <div id="loading-overlay" style="display: none !important;"
+       class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[250] flex flex-col items-center justify-center">
     <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-400 mb-3"></div>
     <p class="text-xs font-bold text-amber-200 tracking-wide">ဆောင်ရွက်နေပါသည် ခဏစောင့်ပါ...</p>
   </div>
 
-  <div id="toast-container" class="fixed bottom-5 right-5 z-[200] flex flex-col gap-2 pointer-events-none"></div>
+  <div id="toast-container" class="fixed bottom-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- 💡 JavaScript Logic: sidebar-open Class နှင့် ညှိထားသော Menu Toggle -->
+  <!-- JavaScript Controls -->
   <script>
+    // 💡 Loading Overlay ဖွင့်/ပိတ် Helper Functions
+    window.showLoading = function() {
+      const el = document.getElementById('loading-overlay');
+      if (el) el.style.setProperty('display', 'flex', 'important');
+    };
+
+    window.hideLoading = function() {
+      const el = document.getElementById('loading-overlay');
+      if (el) el.style.setProperty('display', 'none', 'important');
+    };
+
+    // 💡 Safety Guard: အင်တာနက်နှေး၍ မည်းမှောင်ပြီး Stuck မဖြစ်စေရန် 4 စက္ကန့်အကြာတွင် အလိုအလျောက် ပိတ်ပေးခြင်း
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        window.hideLoading();
+      }, 4000);
+    });
+
+    // Mobile Sidebar အဖွင့်/အပိတ်
     window.toggleMobileSidebar = function(forceClose = false) {
       const sidebar = document.getElementById('main-sidebar');
       const backdrop = document.getElementById('sidebar-backdrop');
@@ -202,13 +211,11 @@
       const isOpen = sidebar.classList.contains('sidebar-open');
 
       if (forceClose || isOpen) {
-        sidebar.classList.remove('sidebar-open', 'translate-x-0');
-        sidebar.classList.add('-translate-x-full');
-        if (backdrop) backdrop.classList.add('hidden');
+        sidebar.classList.remove('sidebar-open');
+        if (backdrop) backdrop.style.setProperty('display', 'none', 'important');
       } else {
-        sidebar.classList.add('sidebar-open', 'translate-x-0');
-        sidebar.classList.remove('-translate-x-full');
-        if (backdrop) backdrop.classList.remove('hidden');
+        sidebar.classList.add('sidebar-open');
+        if (backdrop) backdrop.style.setProperty('display', 'block', 'important');
       }
     };
 
