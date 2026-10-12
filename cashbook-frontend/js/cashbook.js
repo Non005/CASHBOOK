@@ -3,10 +3,10 @@
  * File: js/cashbook.js  
  */
 
-// 💡 ဝင်ငွေကဏ္ဍတွင် "စာအုပ်ရောင်းရငွေ" အပြည့်အဝ ထည့်သွင်းထားပါသည်
+// 💡 ဝင်ငွေ/ထွက်ငွေ ခေါင်းစဉ်များ (စာလုံးပေါင်း space ကွာဟမှုများပါ အဆင်ပြေစေရန် စီစဉ်ထားသည်)
 const CASH_CATEGORIES = {
   INCOME: ["အလှူရရှိ", "အလှူငွေ", "စာအုပ်ရောင်းရငွေ", "ဘဏ်တိုး"],
-  EXPENSE: ["ပုံနှိပ်တိုက်ပေးငွေ", "တရားစခန်း အလှူငွေ", "အထွေထွေ အသုံးစရိတ်"]
+  EXPENSE: ["ပုံနှိပ်တိုက်ပေးငွေ", "ပုံနှိပ်တိုက်ထုတ်ပေးငွေ", "တရားစခန်းအလှူငွေ", "တရားစခန်း အလှူငွေ", "အထွေထွေအသုံးစရိတ်", "အထွေထွေ အသုံးစရိတ်"]
 };
 
 let isCashSubmitting = false;
@@ -17,6 +17,10 @@ function formatMoney(amount) {
 
 function getTodayIso() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function cleanCatName(str) {
+  return String(str || "").replace(/\s+/g, "").trim();
 }
 
 // ရက်စွဲ format ကို Input Type Date နှင့် ကိုက်ညီအောင် ပြောင်းခြင်း
@@ -30,7 +34,9 @@ function toIsoDate(dateStr) {
   return dateStr;
 }
 
-// ထိပ်ဆုံးက KPI Cards (ကျပ် စာသား မပါပါ)
+/**
+ * 💡 ထိပ်ဆုံးက KPI Cards (၄) ခု (ကျပ် စာသား မပါပါ)
+ */
 function statCardsCashHtml(income, expense, balance, bookSales = 0) {
   return `
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
@@ -64,12 +70,13 @@ function statCardsCashHtml(income, expense, balance, bookSales = 0) {
         </div>
       </div>
 
+      <!-- 💡 ၄ ခုမြောက် Box: စာအုပ်ရောင်းရငွေ အမှန် -->
       <div class="stats-card">
         <div style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
           <i class="fa-solid fa-book"></i>
         </div>
         <div style="display: flex; flex-direction: column;">
-          <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">စာအုပ်ရောင်းရငွေ</p>
+          <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">စာအုပ်ရောင်းရငွေ (BOOK SALES)</p>
           <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #38bdf8; font-family: monospace;">+${formatMoney(bookSales)}</h3>
         </div>
       </div>
@@ -83,6 +90,12 @@ function statCardsCashHtml(income, expense, balance, bookSales = 0) {
 async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = "", silentRefresh = false) {
   const container = document.getElementById("view-container");
   if (!container) return;
+
+  // 💡 ၁။ Next နှိပ်ပြီးမှ Page 1 ပြန်မရောက်စေရန် လက်ရှိရောက်နေသော စာမျက်နှာကို မှတ်သားထားခြင်း
+  window.currentCashPage = Number(page) || 1;
+  window.currentCashSearch = searchVal || "";
+  window.currentCashFromDate = fromDate || "";
+  window.currentCashToDate = toDate || "";
 
   const currentUser = window.AppState ? window.AppState.currentUser : localStorage.getItem("yogi_user_name");
   const isAdmin = currentUser === "Admin";
@@ -108,8 +121,21 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
   const totalCount = data.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  // စာအုပ်ရောင်းရငွေ စုစုပေါင်း တွက်ချက်ခြင်း
-  const totalBookSales = rawRows.filter(r => r.category === "စာအုပ်ရောင်းရငွေ").reduce((sum, r) => sum + (Number(r.income) || 0), 0);
+  // 💡 ၂။ စာအုပ်ရောင်းရငွေ 0 မဖြစ်စေရန် Server (သို့မဟုတ် Dashboard Data) မှ စုစုပေါင်း အမှန်ကို ယူခြင်း
+  let totalBookSales = 0;
+  if (data.totalBookSales !== undefined && data.totalBookSales !== null) {
+    totalBookSales = Number(data.totalBookSales);
+  } else if (window._dashDataCache?.cashSummary?.categories) {
+    const cats = window._dashDataCache.cashSummary.categories;
+    Object.keys(cats).forEach(k => {
+      if (cleanCatName(k) === "စာအုပ်ရောင်းရငွေ") {
+        totalBookSales += Number(cats[k].income || 0);
+      }
+    });
+  } else {
+    totalBookSales = rawRows.filter(r => cleanCatName(r.category) === "စာအုပ်ရောင်းရငွေ")
+                            .reduce((sum, r) => sum + (Number(r.income) || 0), 0);
+  }
 
   window._currentCashRows = rawRows;
 
@@ -171,7 +197,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
           </thead>
           <tbody>
             ${rawRows.length > 0 ? rawRows.map((r, idx) => {
-              const isInc = CASH_CATEGORIES.INCOME.includes(r.category);
+              const isInc = CASH_CATEGORIES.INCOME.some(c => cleanCatName(c) === cleanCatName(r.category));
               return `
               <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
                 <td style="padding: 11px 14px; font-weight: bold; color: #fbbf24; white-space: nowrap;">${(page - 1) * limit + idx + 1}</td>
@@ -209,7 +235,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
         </table>
       </div>
 
-      <!-- Pagination -->
+      <!-- Pagination (စာမျက်နှာ ခုန်မထွက်အောင် စနစ်တကျ ချိတ်ဆက်ထားသည်) -->
       <div class="pagination-container">
         <button onclick="renderCashbook(${page - 1}, '${window.escapeHtml(searchVal)}', '${fromDate}', '${toDate}')" ${page <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} class="btn-control btn-control-refresh" style="padding: 0.4rem 0.85rem;">
           <i class="fa-solid fa-chevron-left"></i> Previous
@@ -239,11 +265,12 @@ function triggerCashSearch() {
 }
 
 function resetCashSearch() {
+  window.currentCashPage = 1;
   renderCashbook(1, '', '', '');
 }
 
 /**
- * 💡 Modal Form (ဝင်ငွေတွင် "စာအုပ်ရောင်းရငွေ" ရွေးချယ်နိုင်အောင် ထည့်သွင်းထားပါသည်)
+ * 💡 Modal Form (အလှူရရှိ နှင့် စာအုပ်ရောင်းရငွေ အပြည့်အစုံ ပါဝင်သည်)
  */
 function openCashModal(cashId = null) {
   let existing = null;
@@ -253,7 +280,7 @@ function openCashModal(cashId = null) {
 
   const isEdit = !!existing;
   const modalDate = isEdit ? toIsoDate(existing.txDate) : getTodayIso();
-  const currentCategory = isEdit ? existing.category : "အလှူရရှိ";
+  const currentCategory = isEdit ? cleanCatName(existing.category) : "အလှူရရှိ";
   const currentAmount = isEdit ? (Number(existing.income) > 0 ? existing.income : existing.expense) : "";
   const currentDesc = isEdit ? (existing.description || '') : '';
   const currentLeader = isEdit ? (existing.leaderName || '') : '';
@@ -281,15 +308,14 @@ function openCashModal(cashId = null) {
               <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">ခေါင်းစဉ် *</label>
               <select id="cash-modal-category" required onchange="updateCategoryTypeBadge()">
                 <optgroup label="ဝင်ငွေ (Income)">
-                  <option value="အလှူရရှိ" ${currentCategory === 'အလှူရရှိ' || currentCategory === 'အလှူငွေ' ? 'selected' : ''}>အလှူငွေ</option>
-                  <!-- 💡 စာအုပ်ရောင်းရငွေ Option အသစ် -->
+                  <option value="အလှူရရှိ" ${currentCategory === 'အလှူရရှိ' || currentCategory === 'အလှူငွေ' ? 'selected' : ''}>အလှူရရှိ</option>
                   <option value="စာအုပ်ရောင်းရငွေ" ${currentCategory === 'စာအုပ်ရောင်းရငွေ' ? 'selected' : ''}>စာအုပ်ရောင်းရငွေ</option>
                   <option value="ဘဏ်တိုး" ${currentCategory === 'ဘဏ်တိုး' ? 'selected' : ''}>ဘဏ်တိုး</option>
                 </optgroup>
                 <optgroup label="ထွက်ငွေ (Expense)">
-                  <option value="ပုံနှိပ်တိုက်ပေးငွေ" ${currentCategory === 'ပုံနှိပ်တိုက်ပေးငွေ' ? 'selected' : ''}>ပုံနှိပ်တိုက်ပေးငွေ</option>
-                  <option value="တရားစခန်း အလှူငွေ" ${currentCategory === 'တရားစခန်း အလှူငွေ' ? 'selected' : ''}>တရားစခန်း အလှူငွေ</option>
-                  <option value="အထွေထွေ အသုံးစရိတ်" ${currentCategory === 'အထွေထွေ အသုံးစရိတ်' ? 'selected' : ''}>အထွေထွေ အသုံးစရိတ်</option>
+                  <option value="ပုံနှိပ်တိုက်ပေးငွေ" ${currentCategory === 'ပုံနှိပ်တိုက်ပေးငွေ' || currentCategory === 'ပုံနှိပ်တိုက်ထုတ်ပေးငွေ' ? 'selected' : ''}>ပုံနှိပ်တိုက်ပေးငွေ</option>
+                  <option value="တရားစခန်း အလှူငွေ" ${currentCategory === 'တရားစခန်းအလှူငွေ' ? 'selected' : ''}>တရားစခန်း အလှူငွေ</option>
+                  <option value="အထွေထွေ အသုံးစရိတ်" ${currentCategory === 'အထွေထွေအသုံးစရိတ်' ? 'selected' : ''}>အထွေထွေ အသုံးစရိတ်</option>
                 </optgroup>
               </select>
             </div>
@@ -338,7 +364,7 @@ function updateCategoryTypeBadge() {
   const hint = document.getElementById("cash-type-hint");
   if (!hint) return;
 
-  const isIncome = CASH_CATEGORIES.INCOME.includes(cat);
+  const isIncome = CASH_CATEGORIES.INCOME.some(c => cleanCatName(c) === cleanCatName(cat));
   if (isIncome) {
     hint.style.background = "rgba(16, 185, 129, 0.15)";
     hint.style.color = "#34d399";
@@ -399,7 +425,7 @@ async function saveCashForm(event, editId = null) {
     if (res && res.success) {
       window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ငွေစာရင်း အသစ် သိမ်းဆည်းပြီးပါပြီ။");
       closeCashModal();
-      renderCashbook();
+      renderCashbook(window.currentCashPage || 1);
     } else {
       window.showToast("ERROR", (res && res.message) || "ဆာဗာတွင် သိမ်းဆည်း၍ မရပါ");
     }
@@ -425,7 +451,7 @@ async function deleteCashRecord(id) {
     const res = await window.callApi("deleteCashbook", { id });
     if (res && res.success) {
       window.showToast("SUCCESS", "ဖျက်ပြီးပါပြီ။");
-      renderCashbook();
+      renderCashbook(window.currentCashPage || 1);
     } else {
       window.showToast("ERROR", (res && res.message) || "ဖျက်၍မရပါ");
     }
