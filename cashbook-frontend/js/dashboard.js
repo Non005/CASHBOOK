@@ -10,76 +10,95 @@ function formatMoney(amount) {
   return Number(amount || 0).toLocaleString("en-US");
 }
 
+function cleanCatName(str) {
+  return String(str || "").replace(/\s+/g, "").trim();
+}
+
+/**
+ * 💡 ဘယ်ဘက်ခြမ်း: Mindfulness Reminder with Book Cover (ကျစ်လျစ်စွာ ပြင်ဆင်ထားသည်)
+ */
 function getMindfulnessWithBookHtml() {
   return `
-    <div class="mindfulness-card" style="background: linear-gradient(145deg, #0e172a 0%, #090f1e 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 1.25rem; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-      <div style="display: flex; gap: 1rem; align-items: center; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 1rem; padding: 0.85rem; margin-bottom: 1rem;">
+    <div class="mindfulness-card" style="background: linear-gradient(145deg, #0e172a 0%, #090f1e 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 1.25rem; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+      
+      <!-- စာအုပ်မျက်နှာဖုံး Showcase -->
+      <div style="display: flex; gap: 0.75rem; align-items: center; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 0.85rem; padding: 0.75rem; margin-bottom: 0.75rem;">
         <div style="position: relative; flex-shrink: 0; cursor: pointer;" onclick="openBookModal()" title="စာအုပ်ပုံ အကြီးချဲ့ကြည့်ရန် နှိပ်ပါ">
-          <img src="images/book-cover.jpg" alt="ပဋ္ဌာန်းအခြေခံ၍ သံသရာပြတ် ဝိပဿနာအားထုတ်နည်း" 
+          <img src="images/book-cover.jpg" alt="ပဋ္ဌာန်းတရားစာအုပ်" 
             onerror="this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80'"
-            style="width: 82px; height: 114px; object-fit: cover; border-radius: 0.5rem; border: 2px solid #f59e0b; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35); transition: transform 0.2s;"
-            onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-          <span style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.75); color: #fbbf24; font-size: 9px; padding: 2px 4px; border-radius: 3px;">
+            style="width: 70px; height: 98px; object-fit: cover; border-radius: 0.4rem; border: 2px solid #f59e0b; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);">
+          <span style="position: absolute; bottom: 3px; right: 3px; background: rgba(0,0,0,0.8); color: #fbbf24; font-size: 8px; padding: 1px 3px; border-radius: 2px;">
             <i class="fa-solid fa-magnifying-glass-plus"></i>
           </span>
         </div>
-        <div style="display: flex; flex-direction: column; justify-content: center; gap: 0.25rem;">
-          <h4 style="margin: 0; color: #fef08a; font-size: 0.88rem; font-weight: 900; line-height: 1.4;">
+        <div style="display: flex; flex-direction: column; justify-content: center; gap: 0.15rem; min-width: 0;">
+          <h4 style="margin: 0; color: #fef08a; font-size: 0.82rem; font-weight: 900; line-height: 1.35;">
             ပဋ္ဌာန်းအခြေခံ၍ သံသရာပြတ် ဝိပဿနာအားထုတ်နည်း
           </h4>
-          <p style="margin: 0; color: #94a3b8; font-size: 0.72rem; font-weight: 600;">
-            ပဋ္ဌာန်းစာတမ်းရှင် အင်ဂျင်နီယာ ဦးအုန်းကျော် (ပြင်ဦးလွင်)
+          <p style="margin: 0; color: #94a3b8; font-size: 0.68rem; font-weight: 600;">
+            အင်ဂျင်နီယာ ဦးအုန်းကျော် (ပြင်ဦးလွင်)
           </p>
-          <span style="margin-top: 0.2rem; display: inline-block; color: #38bdf8; font-size: 0.68rem; font-weight: bold;">
+          <span style="display: inline-block; color: #38bdf8; font-size: 0.65rem; font-weight: bold;">
             (ပဋ္ဌာန်းမိသားစု ယောဂီလက်စွဲ)
           </span>
         </div>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 0.65rem; font-family: Georgia, serif; font-size: 0.88rem; line-height: 1.6;">
-        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
-          <p style="margin: 0; font-style: italic;"><span style="color: #fef08a; font-weight: 800;">In every sight,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘာပဲမြင်မြင် ...</span></p>
+      <!-- Mindfulness Quotes -->
+      <div style="display: flex; flex-direction: column; gap: 0.45rem; font-family: Georgia, serif; font-size: 0.82rem; line-height: 1.5;">
+        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.12); padding-bottom: 0.3rem;">
+          <p style="margin: 0; font-style: italic;"><span style="color: #fef08a; font-weight: 800;">In every sight,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.75rem;">-- မင်း ဘာပဲမြင်မြင် ...</span></p>
         </div>
-        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
-          <p style="margin: 0; font-style: italic;"><span style="color: #7dd3fc; font-weight: 800;">In every sound,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘာပဲကြားကြား ...</span></p>
+        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.12); padding-bottom: 0.3rem;">
+          <p style="margin: 0; font-style: italic;"><span style="color: #7dd3fc; font-weight: 800;">In every sound,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.75rem;">-- မင်း ဘာပဲကြားကြား ...</span></p>
         </div>
-        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
-          <p style="margin: 0; font-style: italic;"><span style="color: #6ee7b7; font-weight: 800;">In every smell,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘယ်လို အနံ့ပဲရရ ...</span></p>
+        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.12); padding-bottom: 0.3rem;">
+          <p style="margin: 0; font-style: italic;"><span style="color: #6ee7b7; font-weight: 800;">In every smell,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.75rem;">-- မင်း ဘယ်လို အနံ့ပဲရရ ...</span></p>
         </div>
-        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
-          <p style="margin: 0; font-style: italic;"><span style="color: #fda4af; font-weight: 800;">In every taste,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘာပဲစားစား ...</span></p>
+        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.12); padding-bottom: 0.3rem;">
+          <p style="margin: 0; font-style: italic;"><span style="color: #fda4af; font-weight: 800;">In every taste,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.75rem;">-- မင်း ဘာပဲစားစား ...</span></p>
         </div>
-        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.15); padding-bottom: 0.45rem;">
-          <p style="margin: 0; font-style: italic;"><span style="color: #5eead4; font-weight: 800;">In every touch,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.8rem; font-weight: 600;">-- မင်း ဘာနဲ့ပဲ ထိတွေ့ရပါစေ ...</span></p>
+        <div style="border-bottom: 1px solid rgba(245, 158, 11, 0.12); padding-bottom: 0.3rem;">
+          <p style="margin: 0; font-style: italic;"><span style="color: #5eead4; font-weight: 800;">In every touch,</span> <span style="color: #cbd5e1; font-style: normal; font-family: sans-serif; font-size: 0.75rem;">-- မင်း ဘာနဲ့ပဲ ထိတွေ့ရပါစေ ...</span></p>
         </div>
         <div style="padding-top: 0.2rem;">
-          <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.75rem 1rem; border-radius: 0.85rem;">
-            <p style="margin: 0; color: #fde047; font-weight: 900; font-style: normal; font-size: 0.92rem;">
-              <i class="fa-solid fa-quote-left" style="color: rgba(245, 158, 11, 0.6); margin-right: 0.4rem;"></i>
+          <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.6rem 0.85rem; border-radius: 0.75rem;">
+            <p style="margin: 0; color: #fde047; font-weight: 900; font-style: normal; font-size: 0.85rem;">
+              <i class="fa-solid fa-quote-left" style="color: rgba(245, 158, 11, 0.6); margin-right: 0.3rem;"></i>
               In every thought -- မင်း ဘာပဲ တွေးတွေး ...
             </p>
-            <p style="margin: 0.3rem 0 0 1.25rem; color: #fef08a; font-weight: 800; font-size: 0.85rem;">
+            <p style="margin: 0.2rem 0 0 1rem; color: #fef08a; font-weight: 800; font-size: 0.78rem;">
               — stay mindful. -- အမြဲသတိ ထားပါလေ ...
             </p>
           </div>
         </div>
       </div>
 
-      <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(245, 158, 11, 0.2); display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
-        <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 800; color: #fbbf24;">
+      <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid rgba(245, 158, 11, 0.2); display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem;">
+        <div style="display: flex; align-items: center; gap: 0.3rem; font-weight: 800; color: #fbbf24;">
           <i class="fa-solid fa-dharmachakra"></i>
           <span>Appamadena sampadetha</span>
-          <span style="font-weight: normal; font-style: italic; color: #94a3b8; font-size: 0.68rem;">— The Buddha</span>
+          <span style="font-weight: normal; font-style: italic; color: #94a3b8; font-size: 0.65rem;">— The Buddha</span>
         </div>
       </div>
     </div>
   `;
 }
 
+/**
+ * 💡 ထိပ်ဆုံး Box (၄) ခု (ငွေစာရင်းတွင် ၄ ခုမြောက် Box အား "စာအုပ်ရောင်းရငွေ" အဖြစ် သတ်မှတ်ထားသည်)
+ */
 function renderTopKpiCards(type, d) {
   if (type === "cash") {
     const c = d.cashSummary || { totalIncome: 0, totalExpense: 0, balance: 0, categories: {} };
-    const incDonation = (c.categories && c.categories["အလှူရရှိ"] && c.categories["အလှူရရှိ"].income) || 0;
+    
+    // စာအုပ်ရောင်းရငွေ ရှာဖွေခြင်း (စာလုံးပေါင်း မတူညီမှုများပါ ညှိယူသည်)
+    let incBookSales = 0;
+    Object.keys(c.categories || {}).forEach(k => {
+      if (cleanCatName(k) === "စာအုပ်ရောင်းရငွေ") {
+        incBookSales += Number(c.categories[k].income || 0);
+      }
+    });
 
     return `
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
@@ -113,19 +132,21 @@ function renderTopKpiCards(type, d) {
           </div>
         </div>
 
+        <!-- 💡 ၄ ခုမြောက် Box: စာအုပ်ရောင်းရငွေ -->
         <div class="stats-card">
           <div style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
-            <i class="fa-solid fa-hand-holding-heart"></i>
+            <i class="fa-solid fa-book"></i>
           </div>
           <div style="display: flex; flex-direction: column;">
-            <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">အလှူရရှိ (DONATION)</p>
-            <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #38bdf8; font-family: monospace;">+${formatMoney(incDonation)}</h3>
+            <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">စာအုပ်ရောင်းရငွေ (BOOK SALES)</p>
+            <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #38bdf8; font-family: monospace;">+${formatMoney(incBookSales)}</h3>
           </div>
         </div>
       </div>
     `;
   }
 
+  // ယောဂီ စာရင်း KPI
   return `
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
       <div class="stats-card">
@@ -172,25 +193,51 @@ function renderTopKpiCards(type, d) {
 }
 
 /**
- * 💡 ညာဘက် ဇယား (ဝင်ငွေတွင် ၁။ အလှူငွေ ၂။ စာအုပ်ရောင်းရငွေ ၃။ ဘဏ်တိုး ပြင်ဆင်ထားသည်)
+ * 💡 ညာဘက် ဇယား (Space ကွာဟမှုများ ရှင်းလင်းထားပြီး အခြားဝင်ငွေ/စာရင်းညှိငွေများပါ အတိအကျ ပေါင်းပေးသည်)
  */
 function renderRightTable(type, d) {
   if (type === "cash") {
     const cats = (d.cashSummary && d.cashSummary.categories) || {};
-    
-    // 💡 ဝင်ငွေ ပစ္စည်းများ (အလှူငွေ၊ စာအုပ်ရောင်းရငွေ၊ ဘဏ်တိုး)
-    const incDonation = (cats["အလှူရရှိ"] && cats["အလှူရရှိ"].income) || 0;
-    const incBookSales = (cats["စာအုပ်ရောင်းရငွေ"] && cats["စာအုပ်ရောင်းရငွေ"].income) || 0;
-    const incInterest = (cats["ဘဏ်တိုး"] && cats["ဘဏ်တိုး"].income) || 0;
-    const subTotalIncome = incDonation + incBookSales + incInterest;
 
-    // ထွက်ငွေ ပစ္စည်းများ
-    const expPrinting = (cats["ပုံနှိပ်တိုက်ပေးငွေ"] && cats["ပုံနှိပ်တိုက်ပေးငွေ"].expense) || 0;
-    const expRetreat = (cats["တရားစခန်း အလှူငွေ"] && cats["တရားစခန်း အလှူငွေ"].expense) || 0;
-    const expGeneral = (cats["အထွေထွေ အသုံးစရိတ်"] && cats["အထွေထွေ အသုံးစရိတ်"].expense) || 0;
+    // စာလုံးပေါင်းများကို space ဖယ်ပြီး တိကျစွာ ပေါင်းစပ်တွက်ချက်ခြင်း
+    let incDonation = 0;
+    let incBookSales = 0;
+    let incInterest = 0;
+    let incOther = 0;
+
+    let expPrinting = 0;
+    let expRetreat = 0;
+    let expGeneral = 0;
+
+    Object.keys(cats).forEach(key => {
+      const clean = cleanCatName(key);
+      const inc = Number(cats[key].income || 0);
+      const exp = Number(cats[key].expense || 0);
+
+      if (clean === "အလှူရရှိ" || clean === "အလှူငွေ") {
+        incDonation += inc;
+      } else if (clean === "စာအုပ်ရောင်းရငွေ") {
+        incBookSales += inc;
+      } else if (clean === "ဘဏ်တိုး") {
+        incInterest += inc;
+      } else if (inc > 0) {
+        incOther += inc; // စာရင်းညှိငွေ သို့မဟုတ် အခြားဝင်ငွေများ
+      }
+
+      if (clean === "ပုံနှိပ်တိုက်ပေးငွေ" || clean === "ပုံနှိပ်တိုက်ထုတ်ပေးငွေ") {
+        expPrinting += exp;
+      } else if (clean === "တရားစခန်းအလှူငွေ") {
+        expRetreat += exp;
+      } else if (clean === "အထွေထွေအသုံးစရိတ်" || exp > 0) {
+        expGeneral += exp;
+      }
+    });
+
+    const subTotalIncome = incDonation + incBookSales + incInterest + incOther;
     const subTotalExpense = expPrinting + expRetreat + expGeneral;
-
     const netBalance = subTotalIncome - subTotalExpense;
+
+    let curBal = 0;
 
     return `
       <div style="display: flex; flex-direction: column; gap: 0.5rem; height: 100%;">
@@ -200,46 +247,54 @@ function renderRightTable(type, d) {
         </h3>
 
         <div style="background-color: #0e172a; border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 1.25rem; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); flex: 1;">
-          <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+          <div style="overflow-x: auto; width: 100%;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 520px;">
               <thead>
                 <tr style="background-color: #080d1a; border-bottom: 2px solid rgba(245, 158, 11, 0.3); color: #fbbf24; font-size: 0.72rem; font-weight: 800;">
-                  <th style="padding: 10px 14px; text-align: left; width: 60px;">စဉ်</th>
+                  <th style="padding: 10px 12px; text-align: left; width: 45px;">စဉ်</th>
                   <th style="padding: 10px 14px; text-align: left;">အကြောင်းအရာ / ခေါင်းစဉ်</th>
-                  <th style="padding: 10px 14px; text-align: right;">ဝင်ငွေ</th>
-                  <th style="padding: 10px 14px; text-align: right;">ထွက်ငွေ</th>
-                  <th style="padding: 10px 14px; text-align: right;">လက်ကျန်</th>
+                  <th style="padding: 10px 14px; text-align: right; width: 110px;">ဝင်ငွေ</th>
+                  <th style="padding: 10px 14px; text-align: right; width: 110px;">ထွက်ငွေ</th>
+                  <th style="padding: 10px 14px; text-align: right; width: 120px;">လက်ကျန်</th>
                 </tr>
               </thead>
               <tbody>
                 <!-- ဝင်ငွေ ကဏ္ဍ -->
                 <tr style="background-color: rgba(16, 185, 129, 0.1); border-bottom: 1px solid rgba(16, 185, 129, 0.2);">
-                  <td colspan="5" style="padding: 8px 14px; font-weight: 900; color: #34d399; font-size: 0.78rem;">
-                    <i class="fa-solid fa-circle-down"></i> ဝင်ငွေ
+                  <td colspan="5" style="padding: 8px 12px; font-weight: 900; color: #34d399; font-size: 0.78rem;">
+                    <i class="fa-solid fa-circle-down"></i> ဝင်ငွေ (INCOME)
                   </td>
                 </tr>
                 <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
-                  <td style="padding: 9px 14px; color: #94a3b8;">၁</td>
-                  <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">အလှူငွေ</td>
+                  <td style="padding: 9px 12px; color: #94a3b8;">၁</td>
+                  <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">အလှူရရှိ</td>
                   <td style="padding: 9px 14px; text-align: right; color: #34d399; font-weight: bold; font-family: monospace;">+${formatMoney(incDonation)}</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
-                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(incDonation)}</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(curBal += incDonation)}</td>
                 </tr>
-                <!-- 💡 ၂။ စာအုပ်ရောင်းရငွေ အသစ်ထည့်သွင်းချက် -->
                 <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
-                  <td style="padding: 9px 14px; color: #94a3b8;">၂</td>
+                  <td style="padding: 9px 12px; color: #94a3b8;">၂</td>
                   <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">စာအုပ်ရောင်းရငွေ</td>
                   <td style="padding: 9px 14px; text-align: right; color: #34d399; font-weight: bold; font-family: monospace;">+${formatMoney(incBookSales)}</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
-                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(incDonation + incBookSales)}</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(curBal += incBookSales)}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
-                  <td style="padding: 9px 14px; color: #94a3b8;">၃</td>
+                  <td style="padding: 9px 12px; color: #94a3b8;">၃</td>
                   <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">ဘဏ်တိုး</td>
                   <td style="padding: 9px 14px; text-align: right; color: #34d399; font-weight: bold; font-family: monospace;">+${formatMoney(incInterest)}</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
-                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(subTotalIncome)}</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(curBal += incInterest)}</td>
                 </tr>
+                ${incOther > 0 ? `
+                <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
+                  <td style="padding: 9px 12px; color: #94a3b8;">၄</td>
+                  <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">အခြားဝင်ငွေ / စာရင်းညှိငွေ</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #34d399; font-weight: bold; font-family: monospace;">+${formatMoney(incOther)}</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(curBal += incOther)}</td>
+                </tr>` : ''}
+
                 <!-- ဝင်ငွေပေါင်း -->
                 <tr style="background-color: rgba(16, 185, 129, 0.15); border-bottom: 2px solid rgba(16, 185, 129, 0.3);">
                   <td colspan="2" style="padding: 9px 14px; font-weight: 900; color: #34d399;">ဝင်ငွေပေါင်း</td>
@@ -250,31 +305,32 @@ function renderRightTable(type, d) {
 
                 <!-- ထွက်ငွေ ကဏ္ဍ -->
                 <tr style="background-color: rgba(244, 63, 94, 0.1); border-bottom: 1px solid rgba(244, 63, 94, 0.2);">
-                  <td colspan="5" style="padding: 8px 14px; font-weight: 900; color: #f87171; font-size: 0.78rem;">
-                    <i class="fa-solid fa-circle-up"></i> ထွက်ငွေ
+                  <td colspan="5" style="padding: 8px 12px; font-weight: 900; color: #f87171; font-size: 0.78rem;">
+                    <i class="fa-solid fa-circle-up"></i> ထွက်ငွေ (EXPENSE)
                   </td>
                 </tr>
                 <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
-                  <td style="padding: 9px 14px; color: #94a3b8;">၁</td>
+                  <td style="padding: 9px 12px; color: #94a3b8;">၁</td>
                   <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">ပုံနှိပ်တိုက် ထုတ်ပေးငွေ</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
                   <td style="padding: 9px 14px; text-align: right; color: #f87171; font-weight: bold; font-family: monospace;">-${formatMoney(expPrinting)}</td>
-                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(subTotalIncome - expPrinting)}</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(curBal -= expPrinting)}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
-                  <td style="padding: 9px 14px; color: #94a3b8;">၂</td>
+                  <td style="padding: 9px 12px; color: #94a3b8;">၂</td>
                   <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">တရားစခန်း အလှူငွေ</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
                   <td style="padding: 9px 14px; text-align: right; color: #f87171; font-weight: bold; font-family: monospace;">-${formatMoney(expRetreat)}</td>
-                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(subTotalIncome - (expPrinting + expRetreat))}</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(curBal -= expRetreat)}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
-                  <td style="padding: 9px 14px; color: #94a3b8;">၃</td>
+                  <td style="padding: 9px 12px; color: #94a3b8;">၃</td>
                   <td style="padding: 9px 14px; font-weight: bold; color: #f8fafc;">အထွေထွေ အသုံးစရိတ်</td>
                   <td style="padding: 9px 14px; text-align: right; color: #64748b;">-</td>
                   <td style="padding: 9px 14px; text-align: right; color: #f87171; font-weight: bold; font-family: monospace;">-${formatMoney(expGeneral)}</td>
-                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(netBalance)}</td>
+                  <td style="padding: 9px 14px; text-align: right; color: #fbbf24; font-family: monospace;">${formatMoney(curBal -= expGeneral)}</td>
                 </tr>
+
                 <!-- ထွက်ငွေပေါင်း -->
                 <tr style="background-color: rgba(244, 63, 94, 0.15); border-bottom: 2px solid rgba(244, 63, 94, 0.3);">
                   <td colspan="2" style="padding: 9px 14px; font-weight: 900; color: #f87171;">ထွက်ငွေပေါင်း</td>
@@ -300,7 +356,7 @@ function renderRightTable(type, d) {
     `;
   }
 
-  // ယောဂီ စာရင်း Table (Default)
+  // ယောဂီ စာရင်း Table
   const breakdownRows = (d.perLevel || []).map(l => `
     <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
       <td style="padding: 10px 14px; font-weight: 800; color: #e2e8f0;">${window.escapeHtml(l.name)}</td>
@@ -358,6 +414,9 @@ function renderRightTable(type, d) {
   `;
 }
 
+/**
+ * Main Render Dashboard Function
+ */
 window.renderDashboard = async function (silent = false) {
   const container = document.getElementById("view-container");
   if (!container) return;
@@ -369,27 +428,6 @@ window.renderDashboard = async function (silent = false) {
   let res;
   try {
     res = await window.callApi("getDashboardData", {});
-    
-    if (res && res.success && res.data && !res.data.cashSummary) {
-      try {
-        const cashRes = await window.callApi("getCashbookData", { limit: 500 });
-        if (cashRes && cashRes.success && cashRes.data) {
-          const rows = cashRes.data.rows || [];
-          const catMap = {};
-          rows.forEach(r => {
-            if (!catMap[r.category]) catMap[r.category] = { income: 0, expense: 0 };
-            catMap[r.category].income += Number(r.income || 0);
-            catMap[r.category].expense += Number(r.expense || 0);
-          });
-          res.data.cashSummary = {
-            totalIncome: cashRes.data.totalIncome || 0,
-            totalExpense: cashRes.data.totalExpense || 0,
-            balance: cashRes.data.balance || 0,
-            categories: catMap
-          };
-        }
-      } catch (err2) { }
-    }
   } catch (err) {
     console.error("getDashboardData Error:", err);
   } finally {
@@ -407,12 +445,12 @@ window.renderDashboard = async function (silent = false) {
   container.innerHTML = `
     <div class="space-y-6 view-panel">
       
-      <!-- ထိပ်ဆုံးမှာ Box (၄) ခု -->
+      <!-- 💡 ၁။ ထိပ်ဆုံးမှာ Box (၄) ခု -->
       <div id="dash-kpi-container">
         ${renderTopKpiCards(currentTab, res.data)}
       </div>
 
-      <!-- Tab (၂) ခု (Box ၄ ခု အောက်တွင်) -->
+      <!-- 💡 ၂။ Tab (၂) ခု (Box ၄ ခု အောက်တွင်) -->
       <div style="display: flex; gap: 0.5rem; background: #0c1220; padding: 0.4rem; border-radius: 1rem; border: 1px solid rgba(245, 158, 11, 0.25); width: fit-content;">
         <button onclick="switchDashboardTab('yogi')" 
           style="padding: 0.55rem 1.25rem; font-size: 0.8rem; font-weight: 900; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; gap: 0.5rem; ${currentTab === 'yogi' ? 'background: linear-gradient(90deg, #f59e0b, #d97706); color: #090d16; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);' : 'background: transparent; color: #94a3b8;'}">
@@ -427,8 +465,8 @@ window.renderDashboard = async function (silent = false) {
         </button>
       </div>
 
-      <!-- 2-Column Grid -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; align-items: stretch;">
+      <!-- 💡 ၃။ အောက်ဘက် 2-Column Grid (ဘယ်ဘက် ၃၃၀px သာ ယူပြီး ညာဘက် ဇယားကို ကျယ်ပြန့်စွာ နေရာပေးထားသည်) -->
+      <div style="display: grid; grid-template-columns: minmax(280px, 330px) 1fr; gap: 1.25rem; width: 100%; align-items: stretch;">
         
         <!-- ဘယ်ဘက်: Mindfulness Reminder with Book Cover -->
         <div style="display: flex; flex-direction: column; gap: 0.5rem; height: 100%;">
@@ -441,8 +479,8 @@ window.renderDashboard = async function (silent = false) {
           </div>
         </div>
 
-        <!-- ညာဘက်: Table -->
-        <div id="dash-table-container" style="flex: 1;">
+        <!-- ညာဘက်: Table (ကျယ်ပြန့်စွာ ပေါ်မည့်နေရာ) -->
+        <div id="dash-table-container" style="flex: 1; min-width: 0;">
           ${renderRightTable(currentTab, res.data)}
         </div>
 
