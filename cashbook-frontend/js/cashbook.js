@@ -15,8 +15,14 @@ function formatMoney(amount) {
   return Number(amount || 0).toLocaleString("en-US");
 }
 
+// 💡 (က) ဒေသစံတော်ချိန် (Local Time) အတိုင်း တိကျစွာ ယူသော Function
 function getTodayIso() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function cleanCatName(str) {
@@ -35,7 +41,7 @@ function toIsoDate(dateStr) {
 }
 
 /**
- * 💡 ထိပ်ဆုံးက KPI Cards (၄) ခု (ကျပ် စာသား မပါပါ)
+ * 💡 ထိပ်ဆုံးက KPI Cards (၄) ခု
  */
 function statCardsCashHtml(income, expense, balance, bookSales = 0) {
   return `
@@ -91,7 +97,11 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
   const container = document.getElementById("view-container");
   if (!container) return;
 
-  // 💡 ၁။ Next နှိပ်ပြီးမှ Page 1 ပြန်မရောက်စေရန် လက်ရှိရောက်နေသော စာမျက်နှာကို မှတ်သားထားခြင်း
+  // 💡 စာရိုက်နေစဉ် Focus ပြုတ်ထွက်မသွားစေရန် လက်ရှိ Focus အခြေအနေကို မှတ်သားခြင်း
+  const searchInputBefore = document.getElementById("cash-search-input");
+  const isSearchFocused = document.activeElement === searchInputBefore;
+  const cursorPosition = searchInputBefore ? searchInputBefore.selectionStart : null;
+
   window.currentCashPage = Number(page) || 1;
   window.currentCashSearch = searchVal || "";
   window.currentCashFromDate = fromDate || "";
@@ -103,25 +113,31 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
   const titleEl = document.getElementById("page-title");
   if (titleEl) titleEl.innerText = "ငွေစာရင်း (Cashbook)";
 
-  if (!silentRefresh) window.toggleLoading(true);
+  if (!silentRefresh && typeof window.toggleLoading === "function") {
+    window.toggleLoading(true);
+  }
 
-  let data = { rows: [], total: 0, totalIncome: 0, totalExpense: 0, balance: 0 };
+  let data = { rows: [], total: 0, totalIncome: 0, totalExpense: 0, balance: 0, totalBookSales: 0 };
   const limit = 30;
 
   try {
     const res = await window.callApi("getCashbookData", { page, searchVal, fromDate, toDate, limit });
-    if (res.success && res.data) data = res.data;
+    if (res && res.success && res.data) {
+      data = res.data;
+    }
   } catch (e) {
     console.error("getCashbookData Error:", e);
   } finally {
-    if (!silentRefresh) window.toggleLoading(false);
+    if (!silentRefresh && typeof window.toggleLoading === "function") {
+      window.toggleLoading(false);
+    }
   }
 
   const rawRows = data.rows || [];
   const totalCount = data.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  // 💡 ၂။ စာအုပ်ရောင်းရငွေ 0 မဖြစ်စေရန် Server (သို့မဟုတ် Dashboard Data) မှ စုစုပေါင်း အမှန်ကို ယူခြင်း
+  // 💡 (ဂ) Backend API မှ totalBookSales ကို တိုက်ရိုက် ဦးစားပေး ရယူခြင်း
   let totalBookSales = 0;
   if (data.totalBookSales !== undefined && data.totalBookSales !== null) {
     totalBookSales = Number(data.totalBookSales);
@@ -179,7 +195,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
         </div>
       </div>
 
-      <!-- Table View: စဉ် | ရက်စွဲ | ခေါင်းစဉ် | အကြောင်းအရာ | ဝင်ငွေ | ထွက်ငွေ | လက်ကျန် | ဦးဆောင်သူ | ACTION -->
+      <!-- Table View -->
       <div class="table-scroll-container">
         <table>
           <thead>
@@ -235,7 +251,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
         </table>
       </div>
 
-      <!-- Pagination (စာမျက်နှာ ခုန်မထွက်အောင် စနစ်တကျ ချိတ်ဆက်ထားသည်) -->
+      <!-- Pagination -->
       <div class="pagination-container">
         <button onclick="renderCashbook(${page - 1}, '${window.escapeHtml(searchVal)}', '${fromDate}', '${toDate}')" ${page <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} class="btn-control btn-control-refresh" style="padding: 0.4rem 0.85rem;">
           <i class="fa-solid fa-chevron-left"></i> Previous
@@ -251,6 +267,17 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
       </div>
     </div>
   `;
+
+  // 💡 (ခ) စာရိုက်လက်စ Focus ပြန်လည်ထားရှိခြင်း (ဖုန်းပေါ်တွင် Keyboard မပိတ်သွားစေရန်)
+  if (isSearchFocused) {
+    const searchInputAfter = document.getElementById("cash-search-input");
+    if (searchInputAfter) {
+      searchInputAfter.focus();
+      if (cursorPosition !== null) {
+        searchInputAfter.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    }
+  }
 }
 
 let cashSearchTimer = null;
@@ -266,11 +293,14 @@ function triggerCashSearch() {
 
 function resetCashSearch() {
   window.currentCashPage = 1;
+  window.currentCashSearch = "";
+  window.currentCashFromDate = "";
+  window.currentCashToDate = "";
   renderCashbook(1, '', '', '');
 }
 
 /**
- * 💡 Modal Form (အလှူရရှိ နှင့် စာအုပ်ရောင်းရငွေ အပြည့်အစုံ ပါဝင်သည်)
+ * Modal Form
  */
 function openCashModal(cashId = null) {
   let existing = null;
@@ -329,7 +359,6 @@ function openCashModal(cashId = null) {
             <input type="number" id="cash-modal-amount" required min="1" value="${currentAmount}" placeholder="ဥပမာ - 100000">
           </div>
 
-          <!-- ၂ တန်းချဲ့နိုင်သော Textarea -->
           <div>
             <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">အကြောင်းအရာ *</label>
             <textarea id="cash-modal-desc" rows="2" required placeholder="ဥပမာ - တရားစာအုပ် ရိုက်နှိပ်စရိတ် / ဆွမ်းအလှူခံရငွေ..."
@@ -407,7 +436,7 @@ async function saveCashForm(event, editId = null) {
     submitBtn.style.cursor = "not-allowed";
     submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> သိမ်းဆည်းနေပါသည်...`;
   }
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
 
   try {
     const payload = {
@@ -425,7 +454,14 @@ async function saveCashForm(event, editId = null) {
     if (res && res.success) {
       window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ငွေစာရင်း အသစ် သိမ်းဆည်းပြီးပါပြီ။");
       closeCashModal();
-      renderCashbook(window.currentCashPage || 1);
+      
+      // 💡 Save ပြီးပါက လက်ရှိ Filter များကို မပျောက်စေဘဲ Page ပြန်တင်ပေးခြင်း
+      renderCashbook(
+        window.currentCashPage || 1, 
+        window.currentCashSearch || "", 
+        window.currentCashFromDate || "", 
+        window.currentCashToDate || ""
+      );
     } else {
       window.showToast("ERROR", (res && res.message) || "ဆာဗာတွင် သိမ်းဆည်း၍ မရပါ");
     }
@@ -434,7 +470,7 @@ async function saveCashForm(event, editId = null) {
     window.showToast("ERROR", "ဆာဗာ အမှား: " + (e.message || String(e)));
   } finally {
     isCashSubmitting = false;
-    window.toggleLoading(false);
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false);
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.style.opacity = "1";
@@ -446,19 +482,26 @@ async function saveCashForm(event, editId = null) {
 
 async function deleteCashRecord(id) {
   if (!confirm("ဤငွေစာရင်း မှတ်တမ်းကို ဖျက်ရန် သေချာပါသလား။")) return;
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
   try {
     const res = await window.callApi("deleteCashbook", { id });
     if (res && res.success) {
       window.showToast("SUCCESS", "ဖျက်ပြီးပါပြီ။");
-      renderCashbook(window.currentCashPage || 1);
+      
+      // 💡 Delete ပြီးပါက လက်ရှိ Filter များအတိုင်း ဆက်လက်ပြသပေးခြင်း
+      renderCashbook(
+        window.currentCashPage || 1, 
+        window.currentCashSearch || "", 
+        window.currentCashFromDate || "", 
+        window.currentCashToDate || ""
+      );
     } else {
       window.showToast("ERROR", (res && res.message) || "ဖျက်၍မရပါ");
     }
   } catch (e) {
     console.error(e);
   } finally {
-    window.toggleLoading(false);
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false);
   }
 }
 
