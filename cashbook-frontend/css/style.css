@@ -526,3 +526,82 @@ table th.sticky-action { background-color: #080d1a !important; }
   border-color: #f59e0b !important;
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
 }
+
+
+/* =========================================
+   7. DASHBOARD RESPONSIVE STYLES
+========================================= */
+
+/* Desktop: KPI Box ၄ ခု */
+#dash-kpi-container > div {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+
+#dash-kpi-container .stats-card {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Desktop: စာအုပ်ကတ်နှင့် ဇယား */
+#dash-main-grid {
+  display: grid !important;
+  grid-template-columns: minmax(280px, 330px) minmax(0, 1fr) !important;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+#dash-main-grid > div,
+#dash-table-container {
+  min-width: 0;
+}
+
+/* Tablet */
+@media (max-width: 1023px) {
+  #dash-kpi-container > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #dash-main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  #dash-kpi-container > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.65rem !important;
+  }
+
+  #dash-kpi-container .stats-card {
+    padding: 0.7rem !important;
+    gap: 0.5rem !important;
+  }
+
+  #dash-kpi-container .stats-card h3 {
+    font-size: 1rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  #dash-kpi-container .stats-card p {
+    font-size: 0.58rem !important;
+    line-height: 1.4;
+  }
+
+  #dash-main-grid {
+    gap: 1rem !important;
+  }
+
+  #dash-tabs {
+    width: 100% !important;
+  }
+
+  #dash-tabs button {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
+  }
+}
