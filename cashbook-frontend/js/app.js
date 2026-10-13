@@ -17,28 +17,39 @@ const DEFAULT_LEVELS = [
 
 let liveSyncInterval = null;
 
+
 /**
  * 💡 Mobile & Tablet Sidebar Controls (Responsive Fix)
  */
 window.toggleMobileSidebar = function (forceClose = false) {
   const sidebar = document.getElementById("main-sidebar");
-  const backdrop = document.getElementById("sidebar-backdrop") || document.getElementById("mobile-sidebar-backdrop");
+  const backdrop =
+    document.getElementById("sidebar-backdrop") ||
+    document.getElementById("mobile-sidebar-backdrop");
 
   if (!sidebar) return;
 
-  const isClosed = sidebar.classList.contains("-translate-x-full");
+  // CSS နဲ့ကိုက်ညီတဲ့ class ကို စစ်ဆေးမယ်
+  const isOpen = sidebar.classList.contains("sidebar-open");
 
-  if (forceClose || !isClosed) {
-    sidebar.classList.add("-translate-x-full");
-    sidebar.classList.remove("translate-x-0");
-    if (backdrop) backdrop.classList.add("hidden");
+  if (forceClose || isOpen) {
+    // Sidebar ပိတ်မယ်
+    sidebar.classList.remove("sidebar-open");
+
+    if (backdrop) {
+      backdrop.style.setProperty("display", "none", "important");
+    }
   } else {
-    sidebar.classList.remove("-translate-x-full");
-    sidebar.classList.add("translate-x-0");
-    if (backdrop) backdrop.classList.remove("hidden");
+    // Sidebar ဖွင့်မယ်
+    sidebar.classList.add("sidebar-open");
+
+    if (backdrop) {
+      backdrop.style.setProperty("display", "block", "important");
+    }
   }
 };
 
+// Sidebar ကို အတင်းပိတ်ရန်
 window.closeMobileSidebar = function () {
   window.toggleMobileSidebar(true);
 };
