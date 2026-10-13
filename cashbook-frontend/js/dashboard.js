@@ -94,14 +94,14 @@ function renderTopKpiCards(type, d) {
     
     // စာအုပ်ရောင်းရငွေ ရှာဖွေခြင်း (စာလုံးပေါင်း မတူညီမှုများပါ ညှိယူသည်)
     let incBookSales = 0;
-    Object.keys(c.categories || {}).forEach(k => {
-      if (cleanCatName(k) === "စာအုပ်ရောင်းရငွေ") {
-        incBookSales += Number(c.categories[k].income || 0);
+    Object.keys(c.categories || {}).forEach(key => {
+      if (cleanCatName(key) === "စာအုပ်ရောင်းရငွေ") {
+        incBookSales += Number(c.categories[key].income || 0);
       }
     });
 
     return `
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; width: 100%;">
         <div class="stats-card">
           <div style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
             <i class="fa-solid fa-arrow-down-long"></i>
@@ -148,7 +148,7 @@ function renderTopKpiCards(type, d) {
 
   // ယောဂီ စာရင်း KPI
   return `
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; width: 100%;">
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; width: 100%;">
       <div class="stats-card">
         <div style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
           <i class="fa-solid fa-users"></i>
@@ -451,7 +451,7 @@ window.renderDashboard = async function (silent = false) {
       </div>
 
       <!-- 💡 ၂။ Tab (၂) ခု (Box ၄ ခု အောက်တွင်) -->
-      <div style="display: flex; gap: 0.5rem; background: #0c1220; padding: 0.4rem; border-radius: 1rem; border: 1px solid rgba(245, 158, 11, 0.25); width: fit-content;">
+      <div id="dash-tabs" style="display: flex; flex-wrap: wrap; gap: 0.5rem; background: #0c1220; padding: 0.4rem; border-radius: 1rem; border: 1px solid rgba(245, 158, 11, 0.25); width: fit-content; max-width: 100%; box-sizing: border-box;">
         <button onclick="switchDashboardTab('yogi')" 
           style="padding: 0.55rem 1.25rem; font-size: 0.8rem; font-weight: 900; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; gap: 0.5rem; ${currentTab === 'yogi' ? 'background: linear-gradient(90deg, #f59e0b, #d97706); color: #090d16; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);' : 'background: transparent; color: #94a3b8;'}">
           <i class="fa-solid fa-users"></i>
@@ -465,8 +465,8 @@ window.renderDashboard = async function (silent = false) {
         </button>
       </div>
 
-      <!-- 💡 ၃။ အောက်ဘက် 2-Column Grid (ဘယ်ဘက် ၃၃၀px သာ ယူပြီး ညာဘက် ဇယားကို ကျယ်ပြန့်စွာ နေရာပေးထားသည်) -->
-      <div style="display: grid; grid-template-columns: minmax(280px, 330px) 1fr; gap: 1.25rem; width: 100%; align-items: stretch;">
+      <!-- ၃။ စာအုပ်ကတ် + ဇယား -->
+      <div id="dash-main-grid" style="display: grid; grid-template-columns: minmax(280px, 330px) minmax(0, 1fr); gap: 1.25rem; width: 100%; align-items: stretch;">
         
         <!-- ဘယ်ဘက်: Mindfulness Reminder with Book Cover -->
         <div style="display: flex; flex-direction: column; gap: 0.5rem; height: 100%;">
