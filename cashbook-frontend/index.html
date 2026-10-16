@@ -39,7 +39,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- 💡 Excel library -->
+  <!-- Excel library -->
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -57,7 +57,7 @@
     html.not-authed #login-overlay { display: flex !important; }
     html.not-authed #erp-workspace { display: none !important; }
 
-    /* 💡 စာသားမရှိသေးပါက Login Error Bar အပိုကြီး မပေါ်စေရန် */
+    /* စာသားမရှိသေးပါက Login Error Bar အပိုကြီး မပေါ်စေရန် */
     #login-error:empty {
       display: none !important;
     }
@@ -104,7 +104,6 @@
             class="w-full p-3 bg-[#080d1a] border border-amber-500/30 rounded-xl text-xs text-slate-100 placeholder:text-slate-600 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25 transition">
         </div>
         
-        <!-- 💡 style="display: none;" ထည့်သွင်းထားသဖြင့် နီညိုရောင်ဘား အလွတ်ကြီး ပေါ်မနေတော့ပါ -->
         <div id="login-error" style="display: none;" class="hidden text-rose-400 font-semibold text-[11px] bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl text-center"></div>
         
         <button type="submit"
@@ -165,11 +164,27 @@
           <h1 id="page-title" class="text-base sm:text-lg font-black text-amber-300/90 truncate tracking-wide">ပင်မစာမျက်နှာ</h1>
         </div>
 
-        <div class="text-[11px] sm:text-xs font-bold text-amber-300 bg-[#070d18] border border-amber-500/30 px-3 py-1.5 rounded-xl shrink-0 flex items-center gap-2 font-mono">
+        <!-- 💡 အသစ်ပြင်ဆင်ထားသော Header Right Badge: [Wifi/Offline] + [16 Oct 26 | Fri | 8:35 pm] + [Admin] -->
+        <div class="text-[11px] sm:text-xs font-bold text-amber-300 bg-[#070d18] border border-amber-500/30 px-3 py-1.5 rounded-xl shrink-0 flex items-center gap-2.5 font-mono shadow-inner">
+          
+          <!-- ၁။ WiFi / Offline အခြေအနေပြ Icon -->
+          <span id="header-network-status" class="inline-flex items-center gap-1.5 text-emerald-400 font-extrabold text-[11px] transition-colors duration-300">
+            <i class="fa-solid fa-wifi text-xs"></i>
+            <span class="hidden md:inline">Online</span>
+          </span>
+
+          <span class="text-amber-500/40 font-black">|</span>
+
+          <!-- ၂။ Live ရက်စွဲအချိန် (ဥပမာ: 16 Oct 26 | Fri | 08:35 pm) -->
           <span id="header-live-datetime" class="text-amber-300/90 font-extrabold hidden sm:inline">--</span>
-          <span class="text-amber-500/60 font-black hidden sm:inline">|</span>
-          <i class="fa-solid fa-user text-emerald-400 text-xs"></i>
-          <span id="live-user-name" class="text-emerald-400 font-extrabold truncate max-w-[90px] sm:max-w-none">Admin</span>
+
+          <span class="text-amber-500/40 font-black hidden sm:inline">|</span>
+
+          <!-- ၃။ User Badge (Admin / ဓမ္မဝန်ဆောင်) -->
+          <span class="inline-flex items-center gap-1.5 text-emerald-400 font-extrabold">
+            <i class="fa-solid fa-user text-xs"></i>
+            <span id="live-user-name" class="truncate max-w-[90px] sm:max-w-none">Admin</span>
+          </span>
         </div>
       </header>
 
@@ -192,7 +207,7 @@
 
   <!-- JavaScript Controls -->
   <script>
-    // 💡 Loading Overlay ကို api.js / yogi.js / cashbook.js အားလုံးနှင့် အပြည့်အဝ ချိတ်ဆက်ပေးခြင်း
+    // Loading Overlay Helper
     window.toggleLoading = function(show) {
       const el = document.getElementById('loading-overlay');
       if (!el) return;
@@ -205,7 +220,7 @@
     window.showLoading = () => window.toggleLoading(true);
     window.hideLoading = () => window.toggleLoading(false);
 
-    // 💡 Safety Guard: အင်တာနက်နှေး၍ မည်းမှောင်ပြီး Stuck မဖြစ်စေရန် 4 စက္ကန့်အကြာတွင် အလိုအလျောက် ပိတ်ပေးခြင်း
+    // Safety Guard: 4 စက္ကန့်အကြာတွင် Loading ပိတ်ပေးခြင်း
     window.addEventListener('load', () => {
       setTimeout(() => {
         window.hideLoading();
@@ -231,6 +246,22 @@
       }
     };
 
+    // 💡 အင်တာနက် အခြေအနေ (Online / Offline) စစ်ဆေးပေးသည့် Function
+    function updateNetworkStatus() {
+      const el = document.getElementById('header-network-status');
+      if (!el) return;
+
+      const isOnline = navigator.onLine;
+      if (isOnline) {
+        el.className = "inline-flex items-center gap-1.5 text-emerald-400 font-extrabold text-[11px] transition-colors duration-300";
+        el.innerHTML = `<i class="fa-solid fa-wifi text-xs"></i><span class="hidden md:inline">Online</span>`;
+      } else {
+        el.className = "inline-flex items-center gap-1.5 text-rose-400 font-extrabold text-[11px] animate-pulse transition-colors duration-300";
+        el.innerHTML = `<i class="fa-solid fa-plane-slash text-xs"></i><span>Offline</span>`;
+      }
+    }
+
+    // 💡 ရက်စွဲနှင့် အချိန် နာရီပြသသည့် Function (ပုံစံ: 16 Oct 26 | Fri | 08:35 pm)
     function startHeaderClock() {
       function updateClock() {
         const datetimeEl = document.getElementById('header-live-datetime');
@@ -240,10 +271,10 @@
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-        const dayName = days[now.getDay()];
         const dateNum = String(now.getDate()).padStart(2, '0');
         const monthName = months[now.getMonth()];
         const yearShort = String(now.getFullYear()).slice(-2);
+        const dayName = days[now.getDay()];
 
         let hours = now.getHours();
         const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -252,13 +283,15 @@
         hours = hours ? hours : 12;
         const hoursStr = String(hours).padStart(2, '0');
 
-        datetimeEl.textContent = `${dayName} ${dateNum} ${monthName} ${yearShort} | ${hoursStr}:${minutes} ${ampm}`;
+        // 💡 တောင်းဆိုထားသော ပုံစံ: 16 Oct 26 | Fri | 08:35 pm
+        datetimeEl.textContent = `${dateNum} ${monthName} ${yearShort} | ${dayName} | ${hoursStr}:${minutes} ${ampm}`;
       }
 
       updateClock();
       setInterval(updateClock, 1000);
     }
 
+    // PWA Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('sw.js').then(function(reg) {
@@ -271,6 +304,11 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       startHeaderClock();
+      updateNetworkStatus();
+
+      // လိုင်း အဖွင့်/အပိတ် အပြောင်းအလဲ နားထောင်ခြင်း
+      window.addEventListener('online', updateNetworkStatus);
+      window.addEventListener('offline', updateNetworkStatus);
       
       const nav = document.getElementById('sidebar-nav');
       if (nav) {
