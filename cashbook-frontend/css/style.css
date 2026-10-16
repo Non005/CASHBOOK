@@ -10,6 +10,15 @@
   --border-amber: rgba(245, 158, 11, 0.25);
 }
 
+/* 💡 အမှားမရှိသေးချိန်တွင် Login Error Bar အပိုကြီး မပေါ်စေရန် */
+.hidden { 
+  display: none !important; 
+}
+
+#login-error:empty { 
+  display: none !important; 
+}
+
 /* Custom Scrollbar (Horizontal & Vertical) */
 ::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: #070a12; }
@@ -55,7 +64,7 @@
 }
 
 /* ========================================================================
-   2. 💡 LOGIN BOX & FORM CONTROLS (ဖုန်းရော ကွန်ပျူတာပါ လှပစေရန်)
+   2. 💡 LOGIN BOX & FORM CONTROLS
    ======================================================================== */
 
 #login-overlay {
@@ -152,10 +161,20 @@
    3. 💡 KPI CARDS, TABLES & DASHBOARD CONTROLS
    ======================================================================== */
 
-/* Top 3 KPI Cards Desktop Grid */
+/* 3-Card Grid (ယောဂီစာရင်း အဆင့်များအတွက်) */
 .kpi-grid-container {
   display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 1rem !important;
+  width: 100% !important;
+  margin-bottom: 1.25rem !important;
+}
+
+/* 💡 4-Card Grid (ငွေစာရင်းနှင့် Dashboard အတွက်) */
+.kpi-grid-4,
+#dash-kpi-container > div {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   gap: 1rem !important;
   width: 100% !important;
   margin-bottom: 1.25rem !important;
@@ -166,47 +185,51 @@
   border: 1px solid rgba(245, 158, 11, 0.3) !important;
   border-radius: 1rem !important;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6) !important;
-  padding: 1rem 1.25rem !important;
+  padding: 1rem 1.15rem !important;
   display: flex !important;
   align-items: center !important;
-  gap: 1rem !important;
+  gap: 0.85rem !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  min-width: 0 !important;
 }
 
 .stats-card > div:first-child {
   flex-shrink: 0 !important;
-  width: 3rem !important;
-  height: 3rem !important;
+  width: 2.75rem !important;
+  height: 2.75rem !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   border-radius: 0.85rem !important;
-  font-size: 1.25rem !important;
+  font-size: 1.15rem !important;
+}
+
+.stats-card > div:last-child {
+  min-width: 0 !important;
+  overflow: hidden !important;
 }
 
 .stats-card > div:last-child p {
-  font-size: 0.65rem !important;
+  font-size: 0.62rem !important;
   font-weight: 800 !important;
-  letter-spacing: 0.08em !important;
+  letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
   color: #94a3b8 !important;
-  margin: 0 0 0.2rem 0 !important;
+  margin: 0 0 0.15rem 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .stats-card > div:last-child h3 {
-  font-size: 1.35rem !important;
+  font-size: 1.25rem !important;
   font-weight: 900 !important;
   margin: 0 !important;
   font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace !important;
-}
-
-/* Dashboard 2-Column Grid */
-.dash-grid-container {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
-  gap: 1.25rem !important;
-  width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 /* Control Bar Wrapper & Buttons */
@@ -259,12 +282,13 @@
 /* Search Inputs */
 #yogi-search-input,
 #leader-search-input,
-#summary-search-input {
+#summary-search-input,
+#cash-search-input {
   padding-top: 0.65rem !important;    
   padding-bottom: 0.65rem !important; 
   padding-left: 2.3rem !important;
   padding-right: 0.85rem !important;
-  min-height: 42px !important;         
+  min-height: 40px !important;         
   font-size: 0.82rem !important;      
   background-color: #070a12 !important;
   border: 1px solid rgba(245, 158, 11, 0.35) !important;
@@ -295,11 +319,11 @@ table thead th {
   top: 0 !important; 
   z-index: 20 !important;
   background-color: #080d1a !important;
-  padding: 12px 16px !important; 
+  padding: 11px 14px !important; 
   font-size: 0.72rem !important;
   font-weight: 800 !important;
   text-transform: uppercase !important; 
-  letter-spacing: 0.06em !important; 
+  letter-spacing: 0.05em !important; 
   color: #fbbf24 !important;
   border-bottom: 2px solid rgba(245, 158, 11, 0.3) !important;
   white-space: nowrap !important;
@@ -307,7 +331,7 @@ table thead th {
 }
 
 table tbody td {
-  padding: 11px 16px !important; 
+  padding: 10px 14px !important; 
   border-bottom: 1px solid rgba(30, 41, 59, 0.5) !important;
   font-size: 0.8rem !important; 
   white-space: nowrap !important;
@@ -324,7 +348,6 @@ table td.sticky-action {
   z-index: 15 !important;
   box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5) !important;
 }
-
 table th.sticky-action { background-color: #080d1a !important; }
 
 /* Action Buttons */
@@ -346,7 +369,7 @@ table th.sticky-action { background-color: #080d1a !important; }
 .btn-action-inactive { background: rgba(244, 63, 94, 0.15) !important; color: #f87171 !important; }
 .btn-action-delete { background: rgba(225, 29, 72, 0.15) !important; color: #fda4af !important; }
 
-/* Modal Box */
+/* Modal Box & Form Controls */
 .modal-overlay-bg {
   position: fixed !important;
   inset: 0 !important;
@@ -363,12 +386,17 @@ table th.sticky-action { background-color: #080d1a !important; }
   background-color: #0e172a !important;
   border: 1.5px solid rgba(245, 158, 11, 0.4) !important;
   border-radius: 1.25rem !important;
-  padding: 1.75rem !important;
+  padding: 1.5rem !important;
   width: 100% !important;
-  max-width: 520px !important;
+  max-width: 500px !important;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95) !important;
   box-sizing: border-box !important;
   margin: auto !important;
+}
+
+.modal-dialog-box textarea {
+  font-family: inherit !important;
+  resize: vertical !important;
 }
 
 /* Pagination Bar */
@@ -384,13 +412,12 @@ table th.sticky-action { background-color: #080d1a !important; }
 }
 
 /* ========================================================================
-   4. 🔥 MOBILE & TABLET RESPONSIVE ENGINE (TRIGGERS ON SCREENS < 1280px)
-   ဖုန်းနှင့် Tablet များပေါ်တွင် Sidebar ကို ဝှက်ပေးပြီး Content ကို ၁၀၀% ချဲ့ပေးမည့် အပိုင်း
+   4. 🔥 MOBILE & TABLET RESPONSIVE ENGINE (SCREENS < 1280px)
    ======================================================================== */
 
 @media (max-width: 1279px) {
   
-  /* 💡 Sidebar ကို ဖုန်းမျက်နှာပြင်မှ လုံးဝ ဝှက်ထားပြီး ခလုတ်နှိပ်မှသာ အပေါ်လွှာအဖြစ် ထွက်စေခြင်း */
+  /* 💡 Sidebar Slide-in Drawer */
   #main-sidebar {
     position: fixed !important;
     top: 0 !important;
@@ -401,16 +428,19 @@ table th.sticky-action { background-color: #080d1a !important; }
     max-width: 80vw !important;
     height: 100vh !important;
     z-index: 9999 !important;
-    transform: translateX(-100%) !important;
     box-shadow: 15px 0 50px rgba(0, 0, 0, 0.9) !important;
   }
 
-  /* Menu ခလုတ်နှိပ်သည့်အခါ ပြန်လည်ထွက်ပေါ်လာစေရန် Class */
+  /* 💡 app.js (translate-x-0) နှင့် sidebar-open နှစ်မျိုးလုံး အလုပ်လုပ်စေခြင်း */
+  #main-sidebar.-translate-x-full {
+    transform: translateX(-100%) !important;
+  }
+
+  #main-sidebar.translate-x-0,
   #main-sidebar.sidebar-open {
     transform: translateX(0) !important;
   }
 
-  /* နောက်ခံ Backdrop အမည်းရောင်အလွှာ */
   #sidebar-backdrop {
     position: fixed !important;
     inset: 0 !important;
@@ -419,7 +449,6 @@ table th.sticky-action { background-color: #080d1a !important; }
     z-index: 9998 !important;
   }
 
-  /* 💡 ညာဘက် Content ဧရိယာကို ဖုန်း Screen ၁၀၀% အပြည့် ယူစေခြင်း (ဘေးချင်းမကပ်တော့ပါ) */
   #erp-workspace > div.flex-1,
   #main-content-area {
     width: 100% !important;
@@ -428,18 +457,10 @@ table th.sticky-action { background-color: #080d1a !important; }
     flex: 1 1 100% !important;
   }
 
-  /* Mobile Hamburger Menu ခလုတ် ပေါ်စေခြင်း */
   #mobile-menu-btn {
     display: inline-flex !important;
   }
 
-  /* Mobile KPI Grid */
-  .kpi-grid-container {
-    grid-template-columns: repeat(1, 1fr) !important;
-    gap: 0.75rem !important;
-  }
-
-  /* Mobile Control Bar Wrapper */
   .control-bar-wrapper {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -457,14 +478,12 @@ table th.sticky-action { background-color: #080d1a !important; }
     padding: 0.65rem 0.85rem !important;
   }
 
-  /* Mobile Table Cell Sizing */
   table thead th,
   table tbody td {
     padding: 9px 12px !important;
     font-size: 0.75rem !important;
   }
 
-  /* Mobile Modal Dialog */
   .modal-dialog-box {
     padding: 1.25rem !important;
     max-width: 95% !important;
@@ -492,12 +511,8 @@ table th.sticky-action { background-color: #080d1a !important; }
    ======================================================================== */
 
 @media (min-width: 1280px) {
-  #mobile-menu-btn {
-    display: none !important;
-  }
-  #sidebar-backdrop {
-    display: none !important;
-  }
+  #mobile-menu-btn { display: none !important; }
+  #sidebar-backdrop { display: none !important; }
   #main-sidebar {
     transform: translateX(0) !important;
     position: relative !important;
@@ -527,81 +542,44 @@ table th.sticky-action { background-color: #080d1a !important; }
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
 }
 
+/* ========================================================================
+   7. 💡 DASHBOARD RESPONSIVE ENGINE (TABLET & MOBILE)
+   ======================================================================== */
 
-/* =========================================
-   7. DASHBOARD RESPONSIVE STYLES
-========================================= */
-
-/* Desktop: KPI Box ၄ ခု */
-#dash-kpi-container > div {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 1rem !important;
-  width: 100% !important;
-}
-
-#dash-kpi-container .stats-card {
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-/* Desktop: စာအုပ်ကတ်နှင့် ဇယား */
-#dash-main-grid {
-  display: grid !important;
-  grid-template-columns: minmax(280px, 330px) minmax(0, 1fr) !important;
-  gap: 1.25rem;
-  width: 100%;
-}
-
-#dash-main-grid > div,
-#dash-table-container {
-  min-width: 0;
-}
-
-/* Tablet */
+/* Tablet Responsive */
 @media (max-width: 1023px) {
+  .kpi-grid-container {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .kpi-grid-4,
   #dash-kpi-container > div {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  #dash-main-grid {
-    grid-template-columns: minmax(0, 1fr) !important;
+  /* Tablet ပေါ်တွင် စာအုပ်ကတ်နှင့် ဇယား အောက်/အထက် ခွဲပြသခြင်း */
+  div[style*="minmax(280px, 330px)"] {
+    grid-template-columns: 1fr !important;
   }
 }
 
-/* Mobile */
-@media (max-width: 480px) {
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .kpi-grid-container {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kpi-grid-4,
   #dash-kpi-container > div {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: 1fr !important;
     gap: 0.65rem !important;
   }
 
-  #dash-kpi-container .stats-card {
-    padding: 0.7rem !important;
-    gap: 0.5rem !important;
+  .stats-card {
+    padding: 0.75rem !important;
   }
 
-  #dash-kpi-container .stats-card h3 {
-    font-size: 1rem !important;
-    overflow-wrap: anywhere;
-  }
-
-  #dash-kpi-container .stats-card p {
-    font-size: 0.58rem !important;
-    line-height: 1.4;
-  }
-
-  #dash-main-grid {
-    gap: 1rem !important;
-  }
-
-  #dash-tabs {
-    width: 100% !important;
-  }
-
-  #dash-tabs button {
-    flex: 1 1 auto;
-    justify-content: center;
-    min-width: 0;
+  .stats-card h3 {
+    font-size: 1.1rem !important;
   }
 }
