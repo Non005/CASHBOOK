@@ -39,7 +39,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- 💡 defer တပ်ဆင်ထားသဖြင့် စာမျက်နှာပွင့်တာ မနှေးတော့ပါ -->
+  <!-- 💡 Excel library -->
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -56,6 +56,11 @@
     html.is-authed #erp-workspace { display: flex !important; }
     html.not-authed #login-overlay { display: flex !important; }
     html.not-authed #erp-workspace { display: none !important; }
+
+    /* 💡 စာသားမရှိသေးပါက Login Error Bar အပိုကြီး မပေါ်စေရန် */
+    #login-error:empty {
+      display: none !important;
+    }
 
     * {
       touch-action: manipulation;
@@ -98,7 +103,10 @@
           <input type="password" id="login-password" required placeholder="လျှို့ဝှက်နံပါတ် ရိုက်ထည့်ပါ..."
             class="w-full p-3 bg-[#080d1a] border border-amber-500/30 rounded-xl text-xs text-slate-100 placeholder:text-slate-600 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25 transition">
         </div>
-        <div id="login-error" class="hidden text-rose-400 font-semibold text-[11px] bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl text-center"></div>
+        
+        <!-- 💡 style="display: none;" ထည့်သွင်းထားသဖြင့် နီညိုရောင်ဘား အလွတ်ကြီး ပေါ်မနေတော့ပါ -->
+        <div id="login-error" style="display: none;" class="hidden text-rose-400 font-semibold text-[11px] bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl text-center"></div>
+        
         <button type="submit"
           class="w-full py-3.5 mt-2 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 text-xs tracking-wider active:scale-[0.99] cursor-pointer">
           <span>စနစ်အတွင်းသို့ ဝင်မည်</span>
@@ -120,8 +128,8 @@
   <div id="erp-workspace" class="hidden h-screen w-screen flex flex-row overflow-hidden bg-[#090d16] relative">
     
     <!-- Mobile & Tablet Backdrop Overlay -->
-    <div id="sidebar-backdrop" onclick="toggleMobileSidebar(true)" style="display: none !important;"
-         class="fixed inset-0 bg-black/75 backdrop-blur-sm cursor-pointer transition-opacity"></div>
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar(true)" style="display: none;"
+         class="fixed inset-0 bg-black/75 backdrop-blur-sm cursor-pointer transition-opacity z-[9998]"></div>
 
     <!-- Left Sidebar Drawer -->
     <aside id="main-sidebar" class="bg-[#0c1220] border-r border-amber-500/20 flex flex-col h-full shrink-0">
@@ -173,7 +181,7 @@
 
   </div>
 
-  <!-- 💡 style="display: none !important;" ထည့်သွင်းထားသော Loading Overlay -->
+  <!-- Loading Overlay -->
   <div id="loading-overlay" style="display: none !important;"
        class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[250] flex flex-col items-center justify-center">
     <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-400 mb-3"></div>
@@ -184,16 +192,18 @@
 
   <!-- JavaScript Controls -->
   <script>
-    // 💡 Loading Overlay ဖွင့်/ပိတ် Helper Functions
-    window.showLoading = function() {
+    // 💡 Loading Overlay ကို api.js / yogi.js / cashbook.js အားလုံးနှင့် အပြည့်အဝ ချိတ်ဆက်ပေးခြင်း
+    window.toggleLoading = function(show) {
       const el = document.getElementById('loading-overlay');
-      if (el) el.style.setProperty('display', 'flex', 'important');
+      if (!el) return;
+      if (show) {
+        el.style.setProperty('display', 'flex', 'important');
+      } else {
+        el.style.setProperty('display', 'none', 'important');
+      }
     };
-
-    window.hideLoading = function() {
-      const el = document.getElementById('loading-overlay');
-      if (el) el.style.setProperty('display', 'none', 'important');
-    };
+    window.showLoading = () => window.toggleLoading(true);
+    window.hideLoading = () => window.toggleLoading(false);
 
     // 💡 Safety Guard: အင်တာနက်နှေး၍ မည်းမှောင်ပြီး Stuck မဖြစ်စေရန် 4 စက္ကန့်အကြာတွင် အလိုအလျောက် ပိတ်ပေးခြင်း
     window.addEventListener('load', () => {
@@ -208,13 +218,15 @@
       const backdrop = document.getElementById('sidebar-backdrop');
       if (!sidebar) return;
 
-      const isOpen = sidebar.classList.contains('sidebar-open');
+      const isOpen = sidebar.classList.contains('sidebar-open') || sidebar.classList.contains('translate-x-0');
 
       if (forceClose || isOpen) {
-        sidebar.classList.remove('sidebar-open');
+        sidebar.classList.remove('sidebar-open', 'translate-x-0');
+        sidebar.classList.add('-translate-x-full');
         if (backdrop) backdrop.style.setProperty('display', 'none', 'important');
       } else {
-        sidebar.classList.add('sidebar-open');
+        sidebar.classList.remove('-translate-x-full');
+        sidebar.classList.add('sidebar-open', 'translate-x-0');
         if (backdrop) backdrop.style.setProperty('display', 'block', 'important');
       }
     };
