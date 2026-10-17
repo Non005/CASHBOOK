@@ -3,6 +3,8 @@
  * File: js/yogi.js
  */
 
+let isYogiSubmitting = false;
+
 function detectGenderByName(name) {
   const str = String(name || "").trim();
   if (/^(ဒေါ်|မ|နော်|မိ|ဆရာမ|Ma|Daw|Nan|Naw|Mi)\b/i.test(str) ||
@@ -31,9 +33,9 @@ function statCardsYogiHtml(total, male, female) {
         <div style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
           <i class="fa-solid fa-users"></i>
         </div>
-        <div>
-          <p>TOTAL ACTIVE</p>
-          <h3 style="color: #fbbf24;">${total || 0} ဦး</h3>
+        <div style="display: flex; flex-direction: column;">
+          <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">TOTAL ACTIVE</p>
+          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #fbbf24; font-family: monospace;">${total || 0} ဦး</h3>
         </div>
       </div>
 
@@ -41,9 +43,9 @@ function statCardsYogiHtml(total, male, female) {
         <div style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
           <i class="fa-solid fa-mars"></i>
         </div>
-        <div>
-          <p>ACTIVE MALE</p>
-          <h3 style="color: #818cf8;">${male || 0} ဦး</h3>
+        <div style="display: flex; flex-direction: column;">
+          <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">ACTIVE MALE</p>
+          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #818cf8; font-family: monospace;">${male || 0} ဦး</h3>
         </div>
       </div>
 
@@ -51,9 +53,9 @@ function statCardsYogiHtml(total, male, female) {
         <div style="background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3);">
           <i class="fa-solid fa-venus"></i>
         </div>
-        <div>
-          <p>ACTIVE FEMALE</p>
-          <h3 style="color: #f472b6;">${female || 0} ဦး</h3>
+        <div style="display: flex; flex-direction: column;">
+          <p style="margin: 0; font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">ACTIVE FEMALE</p>
+          <h3 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #f472b6; font-family: monospace;">${female || 0} ဦး</h3>
         </div>
       </div>
     </div>
@@ -63,9 +65,18 @@ function statCardsYogiHtml(total, male, female) {
 /**
  * Render Yogi Stage View
  */
-async function renderYogiStage(stageId, page = 1, searchVal = "") {
+async function renderYogiStage(stageId, page = 1, searchVal = "", silentRefresh = false) {
   const container = document.getElementById("view-container");
   if (!container) return;
+
+  const searchInputBefore = document.getElementById("yogi-search-input");
+  const isSearchFocused = document.activeElement === searchInputBefore;
+  const cursorPosition = searchInputBefore ? searchInputBefore.selectionStart : null;
+
+  // 💡 ၁။ Next နှိပ်ပြီးမှ Page 1 ပြန်မရောက်စေရန် လက်ရှိ စာမျက်နှာကို မှတ်သားထားခြင်း
+  window.currentYogiPage = Number(page) || 1;
+  window.currentYogiSearch = searchVal || "";
+  window.currentYogiStageId = Number(stageId) || 1;
 
   const currentUser = window.AppState ? window.AppState.currentUser : localStorage.getItem("yogi_user_name");
   const isAdmin = currentUser === "Admin";
@@ -78,24 +89,77 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
   const titleEl = document.getElementById("page-title");
   if (titleEl) titleEl.innerText = String(stageInfo.name || "ယောဂီစာရင်း");
 
-  window.toggleLoading(true);
+  // 💡 ၂။ Auto-Refresh တွင် Loading မှိတ်တုတ်မဖြစ်စေရန် ထိန်းချုပ်ခြင်း
+  if (!silentRefresh && typeof window.toggleLoading === "function") {
+    window.toggleLoading(true);
+  }
+
   let data = { rows: [], total: 0, activeTotal: 0, activeMale: 0, activeFemale: 0 };
   const limit = 30;
 
   try {
     const res = await window.callApi("getYogiData", { level: stageId, page, searchVal, limit });
-    if (res.success && res.data) data = res.data;
+    if (res && res.success && res.data) data = res.data;
   } catch (err) {
     console.error("getYogiData Error:", err);
   } finally {
-    window.toggleLoading(false);
+    if (!silentRefresh && typeof window.toggleLoading === "function") {
+      window.toggleLoading(false);
+    }
   }
 
-  const rawRows = data.rows || [];
+  let rawRows = [...(data.rows || [])];
   const totalCount = data.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
+  // 💡 ၃။ အော့ဖ်လိုင်းအချိန်တွင် စက်ထဲသိမ်းထားသော ယာယီယောဂီများကို ဇယားထိပ်တွင် ထည့်ပြခြင်း
+  try {
+    if (window.indexedDB) {
+      const offlineItems = await (async () => {
+        const db = await new Promise((res) => {
+          const req = window.indexedDB.open("YogiOfflineDB", 1);
+          req.onsuccess = (e) => res(e.target.result);
+          req.onerror = () => res(null);
+        });
+        if (!db) return [];
+        return new Promise((res) => {
+          const tx = db.transaction("offline_sync_queue", "readonly");
+          const req = tx.objectStore("offline_sync_queue").getAll();
+          req.onsuccess = () => res(req.result || []);
+          req.onerror = () => res([]);
+        });
+      })();
+
+      const pendingYogis = (offlineItems || [])
+        .filter(item => item.action === "saveYogi" && item.payload && Number(item.payload.level) === Number(stageId))
+        .map(item => {
+          const p = item.payload;
+          return {
+            id: "temp-" + (item.id || Math.random()),
+            regDate: p.regDate,
+            statusDate: p.regDate,
+            name: p.name,
+            age: p.age,
+            occupation: p.occupation,
+            phone: p.phone,
+            address: p.address,
+            introducer: p.introducer,
+            email: p.email,
+            gender: p.gender,
+            status: "Active",
+            isOfflinePending: true
+          };
+        });
+
+      if (pendingYogis.length > 0 && page === 1) {
+        rawRows = [...pendingYogis, ...rawRows];
+      }
+    }
+  } catch (err) { }
+
   const sortedRows = [...rawRows].sort((a, b) => {
+    if (a.isOfflinePending && !b.isOfflinePending) return -1;
+    if (!a.isOfflinePending && b.isOfflinePending) return 1;
     if (a.status === 'Active' && b.status === 'Inactive') return -1;
     if (a.status === 'Inactive' && b.status === 'Active') return 1;
     return 0;
@@ -108,13 +172,14 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
       <!-- Top 3 KPI Cards -->
       ${statCardsYogiHtml(data.activeTotal, data.activeMale, data.activeFemale)}
 
-      <!-- Control Bar -->
+      <!-- Control Bar (Live Search ပါဝင်သည်) -->
       <div class="control-bar-wrapper">
-        <div style="position: relative; flex: 1; min-width: 240px; max-width: 360px;">
+        <div style="position: relative; flex: 1; min-width: 240px; max-width: 380px;">
           <input type="text" id="yogi-search-input" value="${window.escapeHtml(searchVal)}" 
+            oninput="triggerYogiSearchLive(${stageId})"
             onkeydown="if(event.key==='Enter') triggerYogiSearch(${stageId})"
-            placeholder="အမည် / ဖုန်း / လိပ်စာ ရှာဖွေရန်..." 
-            style="width: 100%; padding-left: 2.2rem; background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; color: #f1f5f9; font-size: 0.8rem; outline: none;">
+            placeholder="အမည် / ဖုန်း / လိပ်စာ ရိုက်ရှာရန်..." 
+            style="width: 100%; padding-left: 2.2rem; background: #070a12; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; color: #f1f5f9; font-size: 0.8rem; outline: none; height: 38px;">
           <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.75rem;"></i>
         </div>
         
@@ -125,11 +190,11 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
           <button onclick="exportYogiToExcel(${stageId})" class="btn-control btn-control-export" title="Excel ထုတ်ယူမည်">
             <i class="fa-solid fa-file-excel"></i> Export Excel
           </button>
-          <label class="btn-control btn-control-import" style="cursor: pointer;">
+          <label class="btn-control btn-control-import" style="cursor: pointer; height: 38px;">
             <i class="fa-solid fa-file-import" style="color: #fbbf24;"></i> Import
             <input type="file" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelImport(event, ${stageId})">
           </label>
-          <button onclick="openYogiModal(${stageId})" class="btn-control btn-control-add">
+          <button onclick="openYogiModal(${stageId})" class="btn-control btn-control-add" style="height: 38px;">
             <i class="fa-solid fa-plus"></i> + Add New
           </button>
         </div>
@@ -139,7 +204,7 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
       <div class="table-scroll-container">
         <table>
           <thead>
-            <tr>
+            <tr style="background-color: #080d1a; border-bottom: 2px solid rgba(245, 158, 11, 0.3); color: #fbbf24; font-size: 0.72rem; font-weight: 800;">
               <th>စဉ်</th>
               <th>စတင်ရက်စွဲ</th>
               <th>ချိန်းရက်စွဲ</th>
@@ -156,12 +221,19 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
             </tr>
           </thead>
           <tbody>
-            ${sortedRows.length > 0 ? sortedRows.map((y, idx) => `
-              <tr class="${y.status === 'Inactive' ? 'row-inactive' : ''}">
-                <td style="font-weight: bold; color: #f59e0b; white-space: nowrap;">${(page - 1) * limit + idx + 1}</td>
+            ${sortedRows.length > 0 ? sortedRows.map((y, idx) => {
+              const isPending = !!y.isOfflinePending;
+              return `
+              <tr class="${y.status === 'Inactive' ? 'row-inactive' : ''}" style="border-bottom: 1px solid rgba(30, 41, 59, 0.5); ${isPending ? 'background-color: rgba(245, 158, 11, 0.08);' : ''}">
+                <td style="font-weight: bold; color: #f59e0b; white-space: nowrap;">
+                  ${isPending ? '<span class="text-amber-400 text-xs"><i class="fa-solid fa-clock"></i></span>' : (page - 1) * limit + idx + 1}
+                </td>
                 <td style="white-space: nowrap;">${y.regDate || '-'}</td>
                 <td style="white-space: nowrap; color: #38bdf8; font-weight: bold;">${y.statusDate || y.regDate || '-'}</td>
-                <td style="font-weight: 800; color: #f8fafc; white-space: nowrap;">${window.escapeHtml(y.name)}</td>
+                <td style="font-weight: 800; color: #f8fafc; white-space: nowrap;">
+                  ${window.escapeHtml(y.name)}
+                  ${isPending ? '<span style="margin-left: 4px; padding: 2px 6px; border-radius: 4px; font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4);">အော့ဖ်လိုင်း (ယာယီ)</span>' : ''}
+                </td>
                 <td style="text-align: center; white-space: nowrap;">${y.age || '-'}</td>
                 <td style="white-space: nowrap;">${window.escapeHtml(y.occupation) || '-'}</td>
                 <td style="white-space: nowrap;">${y.phone || '-'}</td>
@@ -178,26 +250,29 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
                     ${y.status || 'Active'}
                   </span>
                 </td>
-                <td class="sticky-action" style="text-align: center; white-space: nowrap;">
+                <td class="sticky-action" style="text-align: center; white-space: nowrap; background-color: #0e172a;">
                   <div style="display: flex; gap: 6px; justify-content: center;">
-                    <button onclick="openYogiModal(${stageId}, ${y.id})" class="btn-action-icon btn-action-edit" title="ပြင်ဆင်မည်"><i class="fa-solid fa-pen-to-square"></i></button>
-                    
-                    <!-- 💡 အဆင့် ၁ မှ ၇ အထိသာ Post (လေယာဉ်ပျံ/ထီး) ခလုတ် ပြသပေးထားပါသည် -->
-                    ${stageId < 8 ? `
-                      <button onclick="postYogiToNextStage(${y.id}, ${stageId})" class="btn-action-icon btn-action-post" title="${stageId === 7 ? 'ယောဂီ စာရင်းဟောင်းသို့ ရွှေ့မည် (Post)' : 'နောက်တစ်ဆင့်သို့ ရွှေ့မည် (Post)'}">
-                        <i class="fa-solid fa-paper-plane"></i>
-                      </button>
-                    ` : ''}
+                    ${!isPending ? `
+                      <button onclick="openYogiModal(${stageId}, ${y.id})" class="btn-action-icon btn-action-edit" title="ပြင်ဆင်မည်"><i class="fa-solid fa-pen-to-square"></i></button>
+                      
+                      <!-- 💡 အဆင့် ၁ မှ ၇ အထိသာ Post (လေယာဉ်ပျံ/ထီး) ခလုတ် ပြသပေးထားပါသည် -->
+                      ${stageId < 8 ? `
+                        <button onclick="postYogiToNextStage(${y.id}, ${stageId})" class="btn-action-icon btn-action-post" title="${stageId === 7 ? 'ယောဂီ စာရင်းဟောင်းသို့ ရွှေ့မည် (Post)' : 'နောက်တစ်ဆင့်သို့ ရွှေ့မည် (Post)'}">
+                          <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                      ` : ''}
 
-                    <button onclick="toggleYogiStatus(${y.id}, '${y.status}', ${stageId})" class="btn-action-icon ${y.status === 'Active' ? 'btn-action-inactive' : 'btn-action-active'}" title="${y.status === 'Active' ? 'Inactive ပြုလုပ်မည်' : 'Active ပြုလုပ်မည်'}"><i class="fa-solid ${y.status === 'Active' ? 'fa-user-xmark' : 'fa-user-check'}"></i></button>
-                    
-                    ${isAdmin ? `
-                      <button onclick="deleteYogi(${y.id}, ${stageId})" class="btn-action-icon btn-action-delete" title="ဖျက်ပါ"><i class="fa-solid fa-trash"></i></button>
-                    ` : ''}
+                      <button onclick="toggleYogiStatus(${y.id}, '${y.status}', ${stageId})" class="btn-action-icon ${y.status === 'Active' ? 'btn-action-inactive' : 'btn-action-active'}" title="${y.status === 'Active' ? 'Inactive ပြုလုပ်မည်' : 'Active ပြုလုပ်မည်'}"><i class="fa-solid ${y.status === 'Active' ? 'fa-user-xmark' : 'fa-user-check'}"></i></button>
+                      
+                      ${isAdmin ? `
+                        <button onclick="deleteYogi(${y.id}, ${stageId})" class="btn-action-icon btn-action-delete" title="ဖျက်ပါ"><i class="fa-solid fa-trash"></i></button>
+                      ` : ''}
+                    ` : '<span style="font-size: 11px; color: #94a3b8; font-style: italic;">Auto-Sync စောင့်ဆိုင်းဆဲ</span>'}
                   </div>
                 </td>
               </tr>
-            `).join('') : `
+            `;
+            }).join('') : `
               <tr><td colspan="13" style="text-align: center; padding: 3rem; color: #64748b;">ယောဂီစာရင်း မရှိသေးပါ။</td></tr>
             `}
           </tbody>
@@ -220,6 +295,30 @@ async function renderYogiStage(stageId, page = 1, searchVal = "") {
       </div>
     </div>
   `;
+
+  // Focus ထိန်းသိမ်းခြင်း
+  if (isSearchFocused) {
+    const searchInputAfter = document.getElementById("yogi-search-input");
+    if (searchInputAfter) {
+      searchInputAfter.focus();
+      if (cursorPosition !== null) {
+        searchInputAfter.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    }
+  }
+}
+
+let yogiSearchTimer = null;
+function triggerYogiSearchLive(stageId) {
+  clearTimeout(yogiSearchTimer);
+  yogiSearchTimer = setTimeout(() => {
+    triggerYogiSearch(stageId);
+  }, 300);
+}
+
+function triggerYogiSearch(stageId) {
+  const input = document.getElementById("yogi-search-input");
+  if (input) renderYogiStage(stageId, 1, input.value.trim(), true);
 }
 
 /**
@@ -327,9 +426,8 @@ function closeYogiModal() {
 }
 
 /**
- * 💡 Save Form with Error Feedback & Button Lock
+ * 💡 Save Form with Offline-First & Button Lock
  */
-let isYogiSubmitting = false;
 async function saveYogiForm(event, stageId, editId = null) {
   event.preventDefault();
   if (isYogiSubmitting) return;
@@ -356,7 +454,7 @@ async function saveYogiForm(event, stageId, editId = null) {
     submitBtn.style.opacity = "0.5";
     submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> သိမ်းဆည်းနေပါသည်...`;
   }
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
 
   try {
     const payload = {
@@ -378,18 +476,20 @@ async function saveYogiForm(event, stageId, editId = null) {
     const res = await window.callApi(action, payload);
 
     if (res && res.success) {
-      window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ယောဂီအသစ် သိမ်းဆည်းပြီးပါပြီ။");
+      if (!res.offline) {
+        window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ယောဂီအသစ် သိမ်းဆည်းပြီးပါပြီ။");
+      }
       closeYogiModal();
-      renderYogiStage(stageId);
+      renderYogiStage(stageId, window.currentYogiPage || 1, window.currentYogiSearch || "");
     } else {
       window.showToast("ERROR", (res && res.message) || "ဆာဗာတွင် သိမ်းဆည်း၍ မရပါ");
     }
   } catch (e) {
-    console.error(e);
+    console.error("Save Yogi Error:", e);
     window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
   } finally {
     isYogiSubmitting = false;
-    window.toggleLoading(false);
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false);
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.style.opacity = "1";
@@ -399,7 +499,7 @@ async function saveYogiForm(event, stageId, editId = null) {
 }
 
 async function toggleYogiStatus(id, currentStatus, stageId) {
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
   const nextStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
   const newDate = getFormattedToday();
 
@@ -412,7 +512,7 @@ async function toggleYogiStatus(id, currentStatus, stageId) {
 
     if (res && res.success) {
       window.showToast("SUCCESS", nextStatus === 'Active' ? `Active ပြုလုပ်ပြီး ချိန်းရက်စွဲ (${newDate}) ဖြင့် အပေါ်သို့ ပို့လိုက်ပါပြီ။` : "Inactive ပြုလုပ်ပြီး အောက်သို့ ရွှေ့လိုက်ပါပြီ။");
-      renderYogiStage(stageId);
+      renderYogiStage(stageId, window.currentYogiPage || 1, window.currentYogiSearch || "");
     } else {
       window.showToast("ERROR", (res && res.message) || "Status ပြောင်း၍ မရပါ");
     }
@@ -420,12 +520,12 @@ async function toggleYogiStatus(id, currentStatus, stageId) {
     console.error(e);
     window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
   } finally { 
-    window.toggleLoading(false); 
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false); 
   }
 }
 
 /**
- * 💡 ပြင်ဆင်ထားသော Post Function (ရွှေ့လိုက်သည်နှင့် မျက်နှာပြင်မှ ပျောက်သွားအောင် ချက်ချင်း Refresh လုပ်ပေးသည်)
+ * 💡 Post Function (ရွှေ့လိုက်သည်နှင့် မျက်နှာပြင်မှ ပျောက်သွားအောင် ချက်ချင်း Refresh လုပ်ပေးသည်)
  */
 async function postYogiToNextStage(id, stageId) {
   const isLast = stageId === 7;
@@ -433,12 +533,12 @@ async function postYogiToNextStage(id, stageId) {
 
   if (!confirm(msg)) return;
 
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
   try {
     const res = await window.callApi("postYogi", { id, postDate: getFormattedToday() });
     if (res && res.success) {
       window.showToast("SUCCESS", isLast ? "ယောဂီ စာရင်းဟောင်းသို့ အောင်မြင်စွာ ရွှေ့လိုက်ပါပြီ။" : "နောက်တစ်ဆင့်သို့ အောင်မြင်စွာ တိုးမြှင့်လိုက်ပါပြီ။");
-      renderYogiStage(stageId); // ချက်ချင်း ဇယား Refresh ဖြစ်ပြီး ပျောက်သွားမည်
+      renderYogiStage(stageId, window.currentYogiPage || 1, window.currentYogiSearch || "");
     } else {
       window.showToast("ERROR", (res && res.message) || "ရွှေ့ပြောင်း၍ မရပါ");
     }
@@ -446,18 +546,18 @@ async function postYogiToNextStage(id, stageId) {
     console.error(e); 
     window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
   } finally { 
-    window.toggleLoading(false); 
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false); 
   }
 }
 
 async function deleteYogi(id, stageId) {
   if (!confirm("ဤယောဂီစာရင်းကို ဖျက်ရန် သေချာပါသလား။")) return;
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
   try {
     const res = await window.callApi("deleteYogi", { id });
     if (res && res.success) {
       window.showToast("SUCCESS", "ဖျက်ပြီးပါပြီ။");
-      renderYogiStage(stageId);
+      renderYogiStage(stageId, window.currentYogiPage || 1, window.currentYogiSearch || "");
     } else {
       window.showToast("ERROR", (res && res.message) || "ဖျက်၍မရပါ");
     }
@@ -465,7 +565,7 @@ async function deleteYogi(id, stageId) {
     console.error(e); 
     window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
   } finally { 
-    window.toggleLoading(false); 
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false); 
   }
 }
 
@@ -481,11 +581,6 @@ function exportYogiToExcel(stageId) {
   } catch (e) {
     window.showToast("ERROR", "Excel ထုတ်ယူရာတွင် အမှားဖြစ်ပေါ်ခဲ့ပါသည်။");
   }
-}
-
-function triggerYogiSearch(stageId) {
-  const input = document.getElementById("yogi-search-input");
-  if (input) renderYogiStage(stageId, 1, input.value.trim());
 }
 
 function handleExcelImport(e, stageId) {
@@ -520,7 +615,7 @@ function handleExcelImport(e, stageId) {
         return;
       }
 
-      window.toggleLoading(true);
+      if (typeof window.toggleLoading === "function") window.toggleLoading(true);
       window.callApi("importYogi", { level: stageId, rows }).then(res => {
         if (res && res.success) {
           window.showToast("SUCCESS", `${res.count || rows.length} ဦး Import အောင်မြင်ပါသည်။`);
@@ -528,7 +623,9 @@ function handleExcelImport(e, stageId) {
         } else {
           window.showToast("ERROR", (res && res.message) || "Import မအောင်မြင်ပါ");
         }
-      }).finally(() => { window.toggleLoading(false); });
+      }).finally(() => { 
+        if (typeof window.toggleLoading === "function") window.toggleLoading(false); 
+      });
     } catch (err) {
       window.showToast("ERROR", "Excel ဖိုင်ဖတ်ရာတွင် အမှားဖြစ်ပေါ်ခဲ့ပါသည်။");
     }
@@ -548,3 +645,5 @@ window.closeYogiModal = closeYogiModal;
 window.saveYogiForm = saveYogiForm;
 window.exportYogiToExcel = exportYogiToExcel;
 window.handleExcelImport = handleExcelImport;
+window.triggerYogiSearch = triggerYogiSearch;
+window.triggerYogiSearchLive = triggerYogiSearchLive;
