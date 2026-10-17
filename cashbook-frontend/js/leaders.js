@@ -3,6 +3,8 @@
  * File: js/leaders.js  
  */
 
+let isLeaderSubmitting = false;
+
 function detectGenderByName(name) {
   const str = String(name || "").trim();
   if (/^(ဒေါ်|မ|နော်|မိ|ဆရာမ|Ma|Daw|Nan|Naw|Mi)\b/i.test(str) ||
@@ -62,37 +64,83 @@ function statCardsLeadersHtml(total, male, female) {
 
 /**
  * Render Leader Yogi List
- * Limit: 30 items per page with Pagination
  */
 async function renderLeaders(page = 1, searchVal = "") {
   const container = document.getElementById("view-container");
   if (!container) return;
 
-  // 💡 Admin ခွင့်ပြုချက် စစ်ဆေးခြင်း
+  // 💡 ၁။ Next နှိပ်ပြီးမှ Page 1 ပြန်မရောက်စေရန် လက်ရှိ စာမျက်နှာကို မှတ်သားထားခြင်း
+  window.currentLeaderPage = Number(page) || 1;
+  window.currentLeaderSearch = searchVal || "";
+
   const currentUser = window.AppState ? window.AppState.currentUser : localStorage.getItem("yogi_user_name");
   const isAdmin = currentUser === "Admin";
 
   const titleEl = document.getElementById("page-title");
   if (titleEl) titleEl.innerText = "ဦးဆောင်ဆွေးနွေး ယောဂီများ";
 
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
   let data = { rows: [], total: 0, activeTotal: 0, activeMale: 0, activeFemale: 0 };
   const limit = 30;
 
   try {
     const res = await window.callApi("getLeaderData", { page, searchVal, limit });
-    if (res.success && res.data) data = res.data;
+    if (res && res.success && res.data) data = res.data;
   } catch (e) {
     console.error("getLeaderData Error:", e);
   } finally {
-    window.toggleLoading(false);
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false);
   }
 
-  const rawRows = data.rows || [];
+  let rawRows = [...(data.rows || [])];
   const totalCount = data.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
+  // 💡 ၂။ အော့ဖ်လိုင်းအချိန်တွင် စက်ထဲသိမ်းထားသော ယာယီဦးဆောင်ယောဂီများကို ဇယားထိပ်တွင် ထည့်ပြခြင်း
+  try {
+    if (window.indexedDB) {
+      const offlineItems = await (async () => {
+        const db = await new Promise((res) => {
+          const req = window.indexedDB.open("YogiOfflineDB", 1);
+          req.onsuccess = (e) => res(e.target.result);
+          req.onerror = () => res(null);
+        });
+        if (!db) return [];
+        return new Promise((res) => {
+          const tx = db.transaction("offline_sync_queue", "readonly");
+          const req = tx.objectStore("offline_sync_queue").getAll();
+          req.onsuccess = () => res(req.result || []);
+          req.onerror = () => res([]);
+        });
+      })();
+
+      const pendingLeaders = (offlineItems || [])
+        .filter(item => item.action === "saveLeader" && item.payload)
+        .map(item => {
+          const p = item.payload;
+          return {
+            id: "temp-" + (item.id || Math.random()),
+            regDate: p.regDate,
+            name: p.name,
+            age: p.age,
+            gender: p.gender,
+            phone: p.phone,
+            address: p.address,
+            email: p.email,
+            status: "Active",
+            isOfflinePending: true
+          };
+        });
+
+      if (pendingLeaders.length > 0 && page === 1) {
+        rawRows = [...pendingLeaders, ...rawRows];
+      }
+    }
+  } catch (err) { }
+
   const sortedRows = [...rawRows].sort((a, b) => {
+    if (a.isOfflinePending && !b.isOfflinePending) return -1;
+    if (!a.isOfflinePending && b.isOfflinePending) return 1;
     if (a.status === 'Active' && b.status === 'Inactive') return -1;
     if (a.status === 'Inactive' && b.status === 'Active') return 1;
     return 0;
@@ -111,7 +159,7 @@ async function renderLeaders(page = 1, searchVal = "") {
           <input type="text" id="leader-search-input" value="${window.escapeHtml(searchVal)}" 
             onkeydown="if(event.key==='Enter') triggerLeaderSearch()"
             placeholder="အမည် / ဖုန်း ရှာဖွေရန်..." 
-            style="width: 100%; padding-left: 2.2rem; background: #070a12; border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 0.75rem; color: #f1f5f9; font-size: 0.8rem; outline: none;">
+            style="width: 100%; padding-left: 2.2rem; background: #070a12; border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 0.75rem; color: #f1f5f9; font-size: 0.8rem; outline: none; height: 38px;">
           <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.75rem;"></i>
         </div>
 
@@ -119,16 +167,23 @@ async function renderLeaders(page = 1, searchVal = "") {
           <button onclick="renderLeaders(1, '')" class="btn-control btn-control-refresh" title="ပြန်လည်ရယူပါ">
             <i class="fa-solid fa-rotate"></i> Refresh
           </button>
+          
+          <!-- 💡 ၃။ Excel Import ခလုတ် -->
+          <label class="btn-control btn-control-import" style="cursor: pointer; height: 38px;">
+            <i class="fa-solid fa-file-import" style="color: #fbbf24;"></i> Import
+            <input type="file" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleLeaderExcelImport(event)">
+          </label>
+
           <button onclick="exportLeaderToExcel()" class="btn-control btn-control-export" title="Excel ထုတ်ယူမည်">
             <i class="fa-solid fa-file-excel"></i> Export Excel
           </button>
-          <button onclick="openLeaderModal()" class="btn-control" style="background: linear-gradient(90deg, #6366f1, #4f46e5); color: #ffffff; font-weight: 900; padding: 0.5rem 1rem;">
+          <button onclick="openLeaderModal()" class="btn-control" style="background: linear-gradient(90deg, #6366f1, #4f46e5); color: #ffffff; font-weight: 900; padding: 0.5rem 1rem; height: 38px;">
             <i class="fa-solid fa-plus"></i> + ဦးဆောင်ယောဂီ အသစ်ထည့်မည်
           </button>
         </div>
       </div>
 
-      <!-- Leader Table (1 Single Line Cells, Plain Index 1, 2, 3) -->
+      <!-- Leader Table -->
       <div class="table-scroll-container">
         <table>
           <thead>
@@ -146,11 +201,18 @@ async function renderLeaders(page = 1, searchVal = "") {
             </tr>
           </thead>
           <tbody>
-            ${sortedRows.length > 0 ? sortedRows.map((l, idx) => `
-              <tr class="${l.status === 'Inactive' ? 'row-inactive' : ''}" style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
-                <td style="padding: 11px 14px; font-weight: bold; color: #818cf8; white-space: nowrap;">${(page - 1) * limit + idx + 1}</td>
+            ${sortedRows.length > 0 ? sortedRows.map((l, idx) => {
+              const isPending = !!l.isOfflinePending;
+              return `
+              <tr class="${l.status === 'Inactive' ? 'row-inactive' : ''}" style="border-bottom: 1px solid rgba(30, 41, 59, 0.5); ${isPending ? 'background-color: rgba(245, 158, 11, 0.08);' : ''}">
+                <td style="padding: 11px 14px; font-weight: bold; color: #818cf8; white-space: nowrap;">
+                  ${isPending ? '<span class="text-amber-400 text-xs"><i class="fa-solid fa-clock"></i></span>' : (page - 1) * limit + idx + 1}
+                </td>
                 <td style="white-space: nowrap;">${l.regDate || '-'}</td>
-                <td style="font-weight: 800; color: #f8fafc; white-space: nowrap;">${window.escapeHtml(l.name)}</td>
+                <td style="font-weight: 800; color: #f8fafc; white-space: nowrap;">
+                  ${window.escapeHtml(l.name)}
+                  ${isPending ? '<span style="margin-left: 4px; padding: 2px 6px; border-radius: 4px; font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4);">အော့ဖ်လိုင်း (ယာယီ)</span>' : ''}
+                </td>
                 <td style="text-align: center; white-space: nowrap;">${l.age || '-'}</td>
                 <td style="text-align: center; white-space: nowrap;">
                   <span style="padding: 2px 8px; border-radius: 4px; font-weight: bold; ${l.gender === 'ကျား' ? 'background: rgba(99,102,241,0.2); color: #818cf8;' : 'background: rgba(236,72,153,0.2); color: #f472b6;'}">
@@ -167,17 +229,18 @@ async function renderLeaders(page = 1, searchVal = "") {
                 </td>
                 <td class="sticky-action" style="text-align: center; white-space: nowrap; background-color: #0e172a;">
                   <div style="display: flex; gap: 6px; justify-content: center;">
-                    <button onclick="openLeaderModal(${l.id})" class="btn-action-icon btn-action-edit" title="ပြင်ဆင်မည်"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button onclick="toggleLeaderStatus(${l.id}, '${l.status}')" class="btn-action-icon ${l.status === 'Active' ? 'btn-action-inactive' : 'btn-action-active'}" title="${l.status === 'Active' ? 'Inactive ပြုလုပ်မည်' : 'Active ပြုလုပ်မည်'}"><i class="fa-solid ${l.status === 'Active' ? 'fa-user-xmark' : 'fa-user-check'}"></i></button>
-                    
-                    <!-- 💡 Admin ဝင်မှသာ Delete Icon ခလုတ် ပေါ်မည် -->
-                    ${isAdmin ? `
-                      <button onclick="deleteLeader(${l.id})" class="btn-action-icon btn-action-delete" title="ဖျက်ပါ"><i class="fa-solid fa-trash"></i></button>
-                    ` : ''}
+                    ${!isPending ? `
+                      <button onclick="openLeaderModal(${l.id})" class="btn-action-icon btn-action-edit" title="ပြင်ဆင်မည်"><i class="fa-solid fa-pen-to-square"></i></button>
+                      <button onclick="toggleLeaderStatus(${l.id}, '${l.status}')" class="btn-action-icon ${l.status === 'Active' ? 'btn-action-inactive' : 'btn-action-active'}" title="${l.status === 'Active' ? 'Inactive ပြုလုပ်မည်' : 'Active ပြုလုပ်မည်'}"><i class="fa-solid ${l.status === 'Active' ? 'fa-user-xmark' : 'fa-user-check'}"></i></button>
+                      ${isAdmin ? `
+                        <button onclick="deleteLeader(${l.id})" class="btn-action-icon btn-action-delete" title="ဖျက်ပါ"><i class="fa-solid fa-trash"></i></button>
+                      ` : ''}
+                    ` : '<span style="font-size: 11px; color: #94a3b8; font-style: italic;">Auto-Sync စောင့်ဆိုင်းဆဲ</span>'}
                   </div>
                 </td>
               </tr>
-            `).join('') : `
+            `;
+            }).join('') : `
               <tr><td colspan="10" style="text-align: center; padding: 3rem; color: #64748b;">ဦးဆောင်ယောဂီ စာရင်း မရှိသေးပါ။</td></tr>
             `}
           </tbody>
@@ -203,7 +266,7 @@ async function renderLeaders(page = 1, searchVal = "") {
 }
 
 /**
- * Centered Modal for Leaders (Includes EMAIL field)
+ * Centered Modal for Leaders
  */
 function openLeaderModal(leaderId = null) {
   let existingData = null;
@@ -268,7 +331,9 @@ function openLeaderModal(leaderId = null) {
 
           <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
             <button type="button" onclick="closeLeaderModal()" class="btn-control btn-control-refresh" style="padding: 0.5rem 1rem;">မလုပ်တော့ပါ</button>
-            <button type="submit" class="btn-control" style="background: linear-gradient(90deg, #6366f1, #4f46e5); color: #ffffff; font-weight: 900; padding: 0.5rem 1.25rem;">သိမ်းဆည်းမည်</button>
+            <button type="submit" id="leader-submit-btn" class="btn-control" style="background: linear-gradient(90deg, #6366f1, #4f46e5); color: #ffffff; font-weight: 900; padding: 0.5rem 1.25rem;">
+              သိမ်းဆည်းမည်
+            </button>
           </div>
         </form>
       </div>
@@ -293,21 +358,34 @@ function closeLeaderModal() {
   if (modal) modal.remove();
 }
 
+/**
+ * 💡 Save Form with Double-Click Lock & Offline-First Support
+ */
 async function saveLeaderForm(event, editId = null) {
   event.preventDefault();
+  if (isLeaderSubmitting) return;
+
   const name = document.getElementById("leader-modal-name").value.trim();
   const gender = document.getElementById("leader-modal-gender").value;
   const age = document.getElementById("leader-modal-age").value.trim();
   const phone = document.getElementById("leader-modal-phone").value.trim();
   const address = document.getElementById("leader-modal-address").value.trim();
   const email = document.getElementById("leader-modal-email").value.trim();
+  const submitBtn = document.getElementById("leader-submit-btn");
 
   if (!name) {
     window.showToast("ERROR", "ဦးဆောင်ယောဂီ အမည် ရိုက်ထည့်ပါ");
     return;
   }
 
-  window.toggleLoading(true);
+  isLeaderSubmitting = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = "0.5";
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> သိမ်းဆည်းနေပါသည်...`;
+  }
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
+
   try {
     const payload = {
       id: editId || undefined,
@@ -324,16 +402,31 @@ async function saveLeaderForm(event, editId = null) {
     const action = editId ? "updateLeader" : "saveLeader";
     const res = await window.callApi(action, payload);
 
-    if (res.success) {
-      window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ဦးဆောင်ယောဂီ အသစ် သိမ်းဆည်းပြီးပါပြီ။");
+    if (res && res.success) {
+      if (!res.offline) {
+        window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ဦးဆောင်ယောဂီ အသစ် သိမ်းဆည်းပြီးပါပြီ။");
+      }
       closeLeaderModal();
-      renderLeaders();
+      renderLeaders(window.currentLeaderPage || 1, window.currentLeaderSearch || "");
+    } else {
+      window.showToast("ERROR", (res && res.message) || "သိမ်းဆည်း၍ မရပါ");
     }
-  } catch (e) { console.error(e); } finally { window.toggleLoading(false); }
+  } catch (e) {
+    console.error("Save Leader Error:", e);
+    window.showToast("ERROR", "ဆာဗာ အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
+  } finally {
+    isLeaderSubmitting = false;
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = "1";
+      submitBtn.innerHTML = `သိမ်းဆည်းမည်`;
+    }
+  }
 }
 
 async function toggleLeaderStatus(id, currentStatus) {
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
   const nextStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
   const newDate = getFormattedToday();
 
@@ -344,23 +437,37 @@ async function toggleLeaderStatus(id, currentStatus) {
       regDate: nextStatus === 'Active' ? newDate : undefined
     });
 
-    if (res.success) {
+    if (res && res.success) {
       window.showToast("SUCCESS", nextStatus === 'Active' ? `Active ပြုလုပ်ပြီး ဒီနေ့ရက်စွဲ (${newDate}) ဖြင့် အပေါ်သို့ ပို့လိုက်ပါပြီ။` : "Inactive ပြုလုပ်ပြီး အောက်သို့ ရွှေ့လိုက်ပါပြီ။");
-      renderLeaders();
+      renderLeaders(window.currentLeaderPage || 1, window.currentLeaderSearch || "");
+    } else {
+      window.showToast("ERROR", (res && res.message) || "Status ပြောင်း၍ မရပါ");
     }
-  } catch (e) { console.error(e); } finally { window.toggleLoading(false); }
+  } catch (e) { 
+    console.error(e);
+    window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
+  } finally { 
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false); 
+  }
 }
 
 async function deleteLeader(id) {
   if (!confirm("ဤဦးဆောင်ယောဂီ စာရင်းကို ဖျက်ရန် သေချာပါသလား။")) return;
-  window.toggleLoading(true);
+  if (typeof window.toggleLoading === "function") window.toggleLoading(true);
   try {
     const res = await window.callApi("deleteLeader", { id });
-    if (res.success) {
+    if (res && res.success) {
       window.showToast("SUCCESS", "ဖျက်ပြီးပါပြီ။");
-      renderLeaders();
+      renderLeaders(window.currentLeaderPage || 1, window.currentLeaderSearch || "");
+    } else {
+      window.showToast("ERROR", (res && res.message) || "ဖျက်၍ မရပါ");
     }
-  } catch (e) { console.error(e); } finally { window.toggleLoading(false); }
+  } catch (e) { 
+    console.error(e);
+    window.showToast("ERROR", "ဆာဗာ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ခဲ့ပါသည်");
+  } finally { 
+    if (typeof window.toggleLoading === "function") window.toggleLoading(false); 
+  }
 }
 
 function exportLeaderToExcel() {
@@ -376,6 +483,57 @@ function exportLeaderToExcel() {
   }
 }
 
+/**
+ * 💡 Excel Import စနစ် (ဦးဆောင်ယောဂီများအား Excel ဖိုင်ဖြင့် အစုလိုက် သွင်းခြင်း)
+ */
+function handleLeaderExcelImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet);
+
+      const rows = json.map(r => {
+        const nameVal = r["အမည်"] || r["Name"] || "";
+        return {
+          name: nameVal,
+          age: r["အသက်"] || r["Age"] || "",
+          phone: r["ဖုန်းနံပါတ်"] || r["Phone"] || "",
+          address: r["နေရပ်လိပ်စာ"] || r["Address"] || "",
+          email: r["EMAIL"] || r["Email"] || "",
+          gender: r["GENDER"] || r["Gender"] || detectGenderByName(nameVal),
+          regDate: r["ရက်စွဲ"] || getFormattedToday()
+        };
+      }).filter(r => r.name);
+
+      if (!rows.length) {
+        window.showToast("ERROR", "Excel ဖိုင်ထဲတွင် ဒေတာမရှိပါ သို့မဟုတ် ခေါင်းစဉ်များ မှားယွင်းနေပါသည်။");
+        return;
+      }
+
+      if (typeof window.toggleLoading === "function") window.toggleLoading(true);
+      window.callApi("importLeader", { rows }).then(res => {
+        if (res && res.success) {
+          window.showToast("SUCCESS", `${res.count || rows.length} ဦး Import အောင်မြင်ပါသည်။`);
+          renderLeaders(1);
+        } else {
+          window.showToast("ERROR", (res && res.message) || "Import မအောင်မြင်ပါ");
+        }
+      }).finally(() => { 
+        if (typeof window.toggleLoading === "function") window.toggleLoading(false); 
+      });
+    } catch (err) {
+      window.showToast("ERROR", "Excel ဖိုင်ဖတ်ရာတွင် အမှားဖြစ်ပေါ်ခဲ့ပါသည်။");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 function triggerLeaderSearch() {
   const input = document.getElementById("leader-search-input");
   if (input) renderLeaders(1, input.value.trim());
@@ -389,3 +547,5 @@ window.openLeaderModal = openLeaderModal;
 window.closeLeaderModal = closeLeaderModal;
 window.saveLeaderForm = saveLeaderForm;
 window.exportLeaderToExcel = exportLeaderToExcel;
+window.handleLeaderExcelImport = handleLeaderExcelImport;
+window.triggerLeaderSearch = triggerLeaderSearch;
