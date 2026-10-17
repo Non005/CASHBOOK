@@ -3,7 +3,7 @@
  * File: js/cashbook.js  
  */
 
-// 💡 ဝင်ငွေ/ထွက်ငွေ ခေါင်းစဉ်များ (စာလုံးပေါင်း space ကွာဟမှုများပါ အဆင်ပြေစေရန် စီစဉ်ထားသည်)
+// 💡 ဝင်ငွေ/ထွက်ငွေ ခေါင်းစဉ်များ
 const CASH_CATEGORIES = {
   INCOME: ["အလှူရရှိ", "အလှူငွေ", "စာအုပ်ရောင်းရငွေ", "ဘဏ်တိုး"],
   EXPENSE: ["ပုံနှိပ်တိုက်ပေးငွေ", "ပုံနှိပ်တိုက်ထုတ်ပေးငွေ", "တရားစခန်းအလှူငွေ", "တရားစခန်း အလှူငွေ", "အထွေထွေအသုံးစရိတ်", "အထွေထွေ အသုံးစရိတ်"]
@@ -15,13 +15,11 @@ function formatMoney(amount) {
   return Number(amount || 0).toLocaleString("en-US");
 }
 
-// 💡 (က) ဒေသစံတော်ချိန် (Local Time) အတိုင်း တိကျစွာ ယူသော Function
 function getTodayIso() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 }
 
@@ -76,7 +74,6 @@ function statCardsCashHtml(income, expense, balance, bookSales = 0) {
         </div>
       </div>
 
-      <!-- 💡 ၄ ခုမြောက် Box: စာအုပ်ရောင်းရငွေ အမှန် -->
       <div class="stats-card">
         <div style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
           <i class="fa-solid fa-book"></i>
@@ -97,7 +94,6 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
   const container = document.getElementById("view-container");
   if (!container) return;
 
-  // 💡 စာရိုက်နေစဉ် Focus ပြုတ်ထွက်မသွားစေရန် လက်ရှိ Focus အခြေအနေကို မှတ်သားခြင်း
   const searchInputBefore = document.getElementById("cash-search-input");
   const isSearchFocused = document.activeElement === searchInputBefore;
   const cursorPosition = searchInputBefore ? searchInputBefore.selectionStart : null;
@@ -133,11 +129,11 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
     }
   }
 
-  const rawRows = data.rows || [];
+  let rawRows = [...(data.rows || [])];
   const totalCount = data.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  // 💡 (ဂ) Backend API မှ totalBookSales ကို တိုက်ရိုက် ဦးစားပေး ရယူခြင်း
+  // 💡 စာအုပ်ရောင်းရငွေ ပမာဏ အမှန် ရယူခြင်း
   let totalBookSales = 0;
   if (data.totalBookSales !== undefined && data.totalBookSales !== null) {
     totalBookSales = Number(data.totalBookSales);
@@ -153,6 +149,49 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
                             .reduce((sum, r) => sum + (Number(r.income) || 0), 0);
   }
 
+  // 💡 အင်တာနက်ပြတ်တောက်နေချိန်တွင် စက်ထဲသိမ်းထားသော ယာယီစာရင်းများကို ဇယားထိပ်တွင် ချက်ချင်းထည့်ပြပေးခြင်း
+  try {
+    if (window.indexedDB) {
+      const offlineItems = await (async () => {
+        const db = await new Promise((res) => {
+          const req = window.indexedDB.open("YogiOfflineDB", 1);
+          req.onsuccess = (e) => res(e.target.result);
+          req.onerror = () => res(null);
+        });
+        if (!db) return [];
+        return new Promise((res) => {
+          const tx = db.transaction("offline_sync_queue", "readonly");
+          const req = tx.objectStore("offline_sync_queue").getAll();
+          req.onsuccess = () => res(req.result || []);
+          req.onerror = () => res([]);
+        });
+      })();
+
+      const pendingCash = (offlineItems || [])
+        .filter(item => item.action === "saveCashbook" && item.payload)
+        .map(item => {
+          const p = item.payload;
+          const isInc = CASH_CATEGORIES.INCOME.some(c => cleanCatName(c) === cleanCatName(p.category));
+          return {
+            id: "temp-" + (item.id || Math.random()),
+            txDate: p.txDate,
+            category: p.category,
+            description: p.description,
+            type: isInc ? "income" : "expense",
+            income: isInc ? Number(p.amount) : 0,
+            expense: isInc ? 0 : Number(p.amount),
+            balance: 0,
+            leaderName: p.leaderName,
+            isOfflinePending: true
+          };
+        });
+
+      if (pendingCash.length > 0 && page === 1) {
+        rawRows = [...pendingCash, ...rawRows];
+      }
+    }
+  } catch (err) { }
+
   window._currentCashRows = rawRows;
 
   container.innerHTML = `
@@ -160,7 +199,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
       <!-- Top KPI Cards (၄ ခု) -->
       ${statCardsCashHtml(data.totalIncome, data.totalExpense, data.balance, totalBookSales)}
 
-      <!-- Control Bar (Live Search ပါဝင်သည်) -->
+      <!-- Control Bar (Live Search & Excel Import ပါဝင်သည်) -->
       <div class="control-bar-wrapper">
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; flex: 1;">
           <div style="position: relative; min-width: 200px; flex: 1;">
@@ -186,6 +225,13 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
           <button onclick="resetCashSearch()" class="btn-control btn-control-refresh" title="မူလအတိုင်း ပြန်လည်ရယူပါ">
             <i class="fa-solid fa-rotate"></i> Refresh
           </button>
+          
+          <!-- 💡 Excel Import ခလုတ် -->
+          <label class="btn-control btn-control-import" style="cursor: pointer; height: 38px;">
+            <i class="fa-solid fa-file-import" style="color: #fbbf24;"></i> Import
+            <input type="file" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleCashExcelImport(event)">
+          </label>
+
           <button onclick="exportCashbookToExcel()" class="btn-control btn-control-export" title="Excel ထုတ်ယူမည်">
             <i class="fa-solid fa-file-excel"></i> Export
           </button>
@@ -195,7 +241,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
         </div>
       </div>
 
-      <!-- Table View -->
+      <!-- Table View: စဉ် | ရက်စွဲ | ခေါင်းစဉ် | အကြောင်းအရာ | ဝင်ငွေ | ထွက်ငွေ | လက်ကျန် | ဦးဆောင်သူ | ACTION -->
       <div class="table-scroll-container">
         <table>
           <thead>
@@ -214,14 +260,19 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
           <tbody>
             ${rawRows.length > 0 ? rawRows.map((r, idx) => {
               const isInc = CASH_CATEGORIES.INCOME.some(c => cleanCatName(c) === cleanCatName(r.category));
+              const isPending = !!r.isOfflinePending;
+
               return `
-              <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5);">
-                <td style="padding: 11px 14px; font-weight: bold; color: #fbbf24; white-space: nowrap;">${(page - 1) * limit + idx + 1}</td>
+              <tr style="border-bottom: 1px solid rgba(30, 41, 59, 0.5); ${isPending ? 'background-color: rgba(245, 158, 11, 0.08);' : ''}">
+                <td style="padding: 11px 14px; font-weight: bold; color: #fbbf24; white-space: nowrap;">
+                  ${isPending ? '<span class="text-amber-400 text-xs"><i class="fa-solid fa-clock"></i></span>' : (page - 1) * limit + idx + 1}
+                </td>
                 <td style="white-space: nowrap; font-family: monospace;">${r.txDate || '-'}</td>
                 <td style="white-space: nowrap;">
                   <span style="padding: 3px 8px; border-radius: 6px; font-weight: 800; font-size: 0.72rem; ${isInc ? 'background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3);' : 'background: rgba(244,63,94,0.15); color: #f87171; border: 1px solid rgba(244,63,94,0.3);'}">
                     ${window.escapeHtml(r.category)}
                   </span>
+                  ${isPending ? '<span style="margin-left: 4px; padding: 2px 6px; border-radius: 4px; font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4);">အော့ဖ်လိုင်း (ယာယီ)</span>' : ''}
                 </td>
                 <td style="white-space: normal; min-width: 180px; color: #f8fafc; font-weight: 600; line-height: 1.4;">${window.escapeHtml(r.description)}</td>
                 <td style="text-align: right; white-space: nowrap; font-weight: 800; color: #34d399; font-family: monospace;">
@@ -231,15 +282,17 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
                   ${r.expense > 0 ? '-' + formatMoney(r.expense) : '-'}
                 </td>
                 <td style="text-align: right; white-space: nowrap; font-weight: 900; color: #fbbf24; font-family: monospace;">
-                  ${formatMoney(r.balance)}
+                  ${isPending ? '-' : formatMoney(r.balance)}
                 </td>
                 <td style="white-space: nowrap; color: #cbd5e1; font-weight: bold;">${window.escapeHtml(r.leaderName)}</td>
                 <td class="sticky-action" style="text-align: center; white-space: nowrap; background-color: #0e172a;">
                   <div style="display: flex; gap: 6px; justify-content: center;">
-                    <button onclick="openCashModal(${r.id})" class="btn-action-icon btn-action-edit" title="ပြင်ဆင်မည်"><i class="fa-solid fa-pen-to-square"></i></button>
-                    ${isAdmin ? `
-                      <button onclick="deleteCashRecord(${r.id})" class="btn-action-icon btn-action-delete" title="ဖျက်ပါ"><i class="fa-solid fa-trash"></i></button>
-                    ` : ''}
+                    ${!isPending ? `
+                      <button onclick="openCashModal(${r.id})" class="btn-action-icon btn-action-edit" title="ပြင်ဆင်မည်"><i class="fa-solid fa-pen-to-square"></i></button>
+                      ${isAdmin ? `
+                        <button onclick="deleteCashRecord(${r.id})" class="btn-action-icon btn-action-delete" title="ဖျက်ပါ"><i class="fa-solid fa-trash"></i></button>
+                      ` : ''}
+                    ` : '<span style="font-size: 11px; color: #94a3b8; font-style: italic;">Auto-Sync စောင့်ဆိုင်းဆဲ</span>'}
                   </div>
                 </td>
               </tr>
@@ -268,7 +321,7 @@ async function renderCashbook(page = 1, searchVal = "", fromDate = "", toDate = 
     </div>
   `;
 
-  // 💡 (ခ) စာရိုက်လက်စ Focus ပြန်လည်ထားရှိခြင်း (ဖုန်းပေါ်တွင် Keyboard မပိတ်သွားစေရန်)
+  // Focus ထိန်းသိမ်းခြင်း
   if (isSearchFocused) {
     const searchInputAfter = document.getElementById("cash-search-input");
     if (searchInputAfter) {
@@ -359,6 +412,7 @@ function openCashModal(cashId = null) {
             <input type="number" id="cash-modal-amount" required min="1" value="${currentAmount}" placeholder="ဥပမာ - 100000">
           </div>
 
+          <!-- ၂ တန်းချဲ့နိုင်သော Textarea -->
           <div>
             <label style="display: block; font-weight: bold; color: #fef08a; margin-bottom: 0.3rem; font-size: 0.75rem;">အကြောင်းအရာ *</label>
             <textarea id="cash-modal-desc" rows="2" required placeholder="ဥပမာ - တရားစာအုပ် ရိုက်နှိပ်စရိတ် / ဆွမ်းအလှူခံရငွေ..."
@@ -412,6 +466,9 @@ function closeCashModal() {
   if (modal) modal.remove();
 }
 
+/**
+ * 💡 Save Form (အော့ဖ်လိုင်းနှင့် အွန်လိုင်း နှစ်မျိုးလုံး ချောမွေ့စွာ အလုပ်လုပ်သည်)
+ */
 async function saveCashForm(event, editId = null) {
   event.preventDefault();
 
@@ -452,10 +509,12 @@ async function saveCashForm(event, editId = null) {
     const res = await window.callApi(action, payload);
 
     if (res && res.success) {
-      window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ငွေစာရင်း အသစ် သိမ်းဆည်းပြီးပါပြီ။");
+      if (!res.offline) {
+        window.showToast("SUCCESS", editId ? "ပြင်ဆင်ချက် သိမ်းဆည်းပြီးပါပြီ။" : "ငွေစာရင်း အသစ် သိမ်းဆည်းပြီးပါပြီ။");
+      }
       closeCashModal();
       
-      // 💡 Save ပြီးပါက လက်ရှိ Filter များကို မပျောက်စေဘဲ Page ပြန်တင်ပေးခြင်း
+      // Save ပြီးပါက စာမျက်နှာ ပြန်တင်ခြင်း
       renderCashbook(
         window.currentCashPage || 1, 
         window.currentCashSearch || "", 
@@ -487,8 +546,6 @@ async function deleteCashRecord(id) {
     const res = await window.callApi("deleteCashbook", { id });
     if (res && res.success) {
       window.showToast("SUCCESS", "ဖျက်ပြီးပါပြီ။");
-      
-      // 💡 Delete ပြီးပါက လက်ရှိ Filter များအတိုင်း ဆက်လက်ပြသပေးခြင်း
       renderCashbook(
         window.currentCashPage || 1, 
         window.currentCashSearch || "", 
@@ -518,6 +575,58 @@ function exportCashbookToExcel() {
   }
 }
 
+/**
+ * 💡 Excel Import စနစ် (Google Sheet မှ ထုတ်လာသော .xlsx ဖိုင်အား တိုက်ရိုက် သွင်းခြင်း)
+ */
+function handleCashExcelImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet);
+
+      const rows = json.map(r => {
+        const inc = Number(String(r["ဝင်ငွေ"] || 0).replace(/,/g, ''));
+        const exp = Number(String(r["ထွက်ငွေ"] || 0).replace(/,/g, ''));
+        const amt = inc > 0 ? inc : exp;
+
+        return {
+          txDate: toIsoDate(r["ရက်စွဲ"]),
+          category: r["ခေါင်းစဉ်"] || "အလှူရရှိ",
+          description: r["အကြောင်းအရာ"] || "",
+          amount: amt,
+          leaderName: r["ဦးဆောင်သူ"] || "Admin"
+        };
+      }).filter(r => r.description && r.amount > 0);
+
+      if (!rows.length) {
+        window.showToast("ERROR", "ဒေတာ မတွေ့ပါ သို့မဟုတ် ခေါင်းစဉ်များ မှားယွင်းနေပါသည်။");
+        return;
+      }
+
+      if (typeof window.toggleLoading === "function") window.toggleLoading(true);
+      window.callApi("importCashbook", { rows }).then(res => {
+        if (res && res.success) {
+          window.showToast("SUCCESS", `${res.count || rows.length} ခု Import အောင်မြင်ပါသည်။`);
+          renderCashbook(1);
+        } else {
+          window.showToast("ERROR", (res && res.message) || "Import မအောင်မြင်ပါ");
+        }
+      }).finally(() => { 
+        if (typeof window.toggleLoading === "function") window.toggleLoading(false); 
+      });
+    } catch (err) {
+      window.showToast("ERROR", "Excel ဖိုင်ဖတ်ရာတွင် အမှားဖြစ်ပေါ်ခဲ့ပါသည်။");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 // Global Window Exports
 window.renderCashbook = renderCashbook;
 window.openCashModal = openCashModal;
@@ -525,6 +634,7 @@ window.closeCashModal = closeCashModal;
 window.saveCashForm = saveCashForm;
 window.deleteCashRecord = deleteCashRecord;
 window.exportCashbookToExcel = exportCashbookToExcel;
+window.handleCashExcelImport = handleCashExcelImport;
 window.triggerCashSearch = triggerCashSearch;
 window.resetCashSearch = resetCashSearch;
 window.updateCategoryTypeBadge = updateCategoryTypeBadge;
