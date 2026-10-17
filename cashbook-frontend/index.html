@@ -62,6 +62,27 @@
       display: none !important;
     }
 
+    /* 💡 Header ရက်စွဲအချိန် မပျောက်စေရန် သီးသန့် CSS */
+    .header-datetime {
+      display: inline-block !important;
+      color: #fde68a !important;
+      font-weight: 800 !important;
+    }
+
+    .header-datetime-divider {
+      display: inline-block !important;
+      color: rgba(245, 158, 11, 0.4) !important;
+      font-weight: 900 !important;
+    }
+
+    /* ဖုန်းမျက်နှာပြင် အလွန်သေးချိန် (< 600px) မှသာ ခေါင်းစဉ်မကျဉ်းစေရန် ရက်စွဲကို ခေတ္တဝှက်မည် */
+    @media (max-width: 600px) {
+      .header-datetime,
+      .header-datetime-divider {
+        display: none !important;
+      }
+    }
+
     * {
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
@@ -164,26 +185,26 @@
           <h1 id="page-title" class="text-base sm:text-lg font-black text-amber-300/90 truncate tracking-wide">ပင်မစာမျက်နှာ</h1>
         </div>
 
-        <!-- 💡 အသစ်ပြင်ဆင်ထားသော Header Right Badge: [Wifi/Offline] + [16 Oct 26 | Fri | 8:35 pm] + [Admin] -->
-        <div class="text-[11px] sm:text-xs font-bold text-amber-300 bg-[#070d18] border border-amber-500/30 px-3 py-1.5 rounded-xl shrink-0 flex items-center gap-2.5 font-mono shadow-inner">
+        <!-- 💡 အသစ်ပြင်ဆင်ထားသော Header Right Badge: [WiFi/Offline] | [ရက်စွဲ | နေ့ | အချိန်] | [Admin] -->
+        <div style="display: inline-flex; align-items: center; gap: 0.65rem; padding: 0.35rem 0.85rem; background-color: #070d18; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 0.75rem; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; font-size: 0.75rem; font-weight: 800; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); white-space: nowrap;">
           
-          <!-- ၁။ WiFi / Offline အခြေအနေပြ Icon -->
-          <span id="header-network-status" class="inline-flex items-center gap-1.5 text-emerald-400 font-extrabold text-[11px] transition-colors duration-300">
-            <i class="fa-solid fa-wifi text-xs"></i>
-            <span class="hidden md:inline">Online</span>
+          <!-- ၁။ WiFi (Online) / Offline Status -->
+          <span id="header-network-status" style="display: inline-flex; align-items: center; gap: 0.35rem; color: #34d399;">
+            <i class="fa-solid fa-wifi" style="font-size: 0.8rem;"></i>
+            <span>Online</span>
           </span>
 
-          <span class="text-amber-500/40 font-black">|</span>
+          <span class="header-datetime-divider">|</span>
 
-          <!-- ၂။ Live ရက်စွဲအချိန် (ဥပမာ: 16 Oct 26 | Fri | 08:35 pm) -->
-          <span id="header-live-datetime" class="text-amber-300/90 font-extrabold hidden sm:inline">--</span>
+          <!-- ၂။ Live ရက်စွဲနှင့် အချိန် နာရီ (ဥပမာ: 16 Oct 26 | Fri | 8:35 pm) -->
+          <span id="header-live-datetime" class="header-datetime">--</span>
 
-          <span class="text-amber-500/40 font-black hidden sm:inline">|</span>
+          <span style="color: rgba(245, 158, 11, 0.4); font-weight: 900;">|</span>
 
-          <!-- ၃။ User Badge (Admin / ဓမ္မဝန်ဆောင်) -->
-          <span class="inline-flex items-center gap-1.5 text-emerald-400 font-extrabold">
-            <i class="fa-solid fa-user text-xs"></i>
-            <span id="live-user-name" class="truncate max-w-[90px] sm:max-w-none">Admin</span>
+          <!-- ၃။ User Badge (Admin) -->
+          <span style="display: inline-flex; align-items: center; gap: 0.35rem; color: #34d399;">
+            <i class="fa-solid fa-user" style="font-size: 0.75rem;"></i>
+            <span id="live-user-name">Admin</span>
           </span>
         </div>
       </header>
@@ -251,17 +272,16 @@
       const el = document.getElementById('header-network-status');
       if (!el) return;
 
-      const isOnline = navigator.onLine;
-      if (isOnline) {
-        el.className = "inline-flex items-center gap-1.5 text-emerald-400 font-extrabold text-[11px] transition-colors duration-300";
-        el.innerHTML = `<i class="fa-solid fa-wifi text-xs"></i><span class="hidden md:inline">Online</span>`;
+      if (navigator.onLine) {
+        el.style.color = "#34d399";
+        el.innerHTML = `<i class="fa-solid fa-wifi" style="font-size: 0.8rem;"></i> <span>Online</span>`;
       } else {
-        el.className = "inline-flex items-center gap-1.5 text-rose-400 font-extrabold text-[11px] animate-pulse transition-colors duration-300";
-        el.innerHTML = `<i class="fa-solid fa-plane-slash text-xs"></i><span>Offline</span>`;
+        el.style.color = "#f87171";
+        el.innerHTML = `<i class="fa-solid fa-plane-slash" style="font-size: 0.8rem;"></i> <span>Offline</span>`;
       }
     }
 
-    // 💡 ရက်စွဲနှင့် အချိန် နာရီပြသသည့် Function (ပုံစံ: 16 Oct 26 | Fri | 08:35 pm)
+    // 💡 ရက်စွဲနှင့် အချိန်ပြသခြင်း: 16 Oct 26 | Fri | 8:35 pm
     function startHeaderClock() {
       function updateClock() {
         const datetimeEl = document.getElementById('header-live-datetime');
@@ -281,10 +301,9 @@
         const ampm = hours >= 12 ? 'pm' : 'am';
         hours = hours % 12;
         hours = hours ? hours : 12;
-        const hoursStr = String(hours).padStart(2, '0');
 
-        // 💡 တောင်းဆိုထားသော ပုံစံ: 16 Oct 26 | Fri | 08:35 pm
-        datetimeEl.textContent = `${dateNum} ${monthName} ${yearShort} | ${dayName} | ${hoursStr}:${minutes} ${ampm}`;
+        // 💡 တောင်းဆိုထားသည့် ပုံစံ: 16 Oct 26 | Fri | 8:35 pm
+        datetimeEl.textContent = `${dateNum} ${monthName} ${yearShort} | ${dayName} | ${hours}:${minutes} ${ampm}`;
       }
 
       updateClock();
@@ -302,11 +321,14 @@
       });
     }
 
+    // စတင်ချိန်တွင် ချက်ချင်း Run ခြင်း
+    startHeaderClock();
+    updateNetworkStatus();
+
     document.addEventListener('DOMContentLoaded', () => {
       startHeaderClock();
       updateNetworkStatus();
 
-      // လိုင်း အဖွင့်/အပိတ် အပြောင်းအလဲ နားထောင်ခြင်း
       window.addEventListener('online', updateNetworkStatus);
       window.addEventListener('offline', updateNetworkStatus);
       
