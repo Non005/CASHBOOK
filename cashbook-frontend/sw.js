@@ -1,14 +1,15 @@
 /**
+ * ========================================================================
  * YOGI MANAGEMENT SYSTEM — Service Worker (PWA)
- * File: sw.js 
- */ 
+ * File: sw.js (Optimized for Network-First & Cache Management)
+ * ========================================================================
+ */
 
-const CACHE_NAME = "yogi-app-v1";
+const CACHE_NAME = "yogi-app-v2";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./css/style.css",
-  "./css/fontawesome.min.css",
   "./js/config.js",
   "./js/api.js",
   "./js/auth.js",
@@ -40,7 +41,7 @@ self.addEventListener("activate", event => {
   );
 });
 
-// Fetch Event: Network-first for API, Cache-first for Static Assets
+// Fetch Event: Network-first for API and HTML, Cache-first for Static Assets
 self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
 
@@ -51,16 +52,14 @@ self.addEventListener("fetch", event => {
 
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        // Background update cache
-        fetch(event.request).then(networkResponse => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {/* Offline fallback */});
-        return cachedResponse;
-      }
-      return fetch(event.request);
+      const fetchPromise = fetch(event.request).then(networkResponse => {
+        if (networkResponse && networkResponse.status === 200) {
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
+        }
+        return networkResponse;
+      }).catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
