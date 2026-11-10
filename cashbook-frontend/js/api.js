@@ -1,6 +1,8 @@
 /**
+ * ========================================================================
  * YOGI MANAGEMENT SYSTEM — API Bridge & Offline-First Sync Engine
- * File: js/api.js 
+ * File: js/api.js (Enhanced with Idempotency Support)
+ * ========================================================================
  */
 
 const CONFIG_KEYS = {
@@ -15,12 +17,8 @@ window.AppState = window.AppState || {
   currentTab: "home"
 };
 
-// Global Read Cache
 window.gReadCache = window.gReadCache || {};
 
-/**
- * Clears cached read requests
- */
 window.clearReadCache = function (prefix) {
   if (!prefix) { 
     window.gReadCache = {}; 
@@ -31,9 +29,6 @@ window.clearReadCache = function (prefix) {
   });
 };
 
-/**
- * Toggle Fullscreen Loading Overlay
- */
 window.toggleLoading = function (show) {
   const overlay = document.getElementById("loading-overlay");
   if (!overlay) return;
@@ -46,9 +41,6 @@ window.toggleLoading = function (show) {
   }
 };
 
-/**
- * XSS Helper
- */
 window.escapeHtml = function (str) {
   if (str === undefined || str === null) return "";
   return String(str)
@@ -56,9 +48,6 @@ window.escapeHtml = function (str) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 };
 
-/**
- * 💡 Toast Notification Popup (SUCCESS: အစိမ်း, WARN: အဝါ, ERROR: အနီ)
- */
 window.showToast = function (type, message) {
   const box = document.getElementById("toast-container");
   if (!box) return;
@@ -83,7 +72,6 @@ window.showToast = function (type, message) {
   }
 
   el.className = `p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-extrabold transition-all transform translate-y-4 opacity-0 duration-300 pointer-events-auto bg-[#0e172a] border ${borderColor}`;
-  
   el.innerHTML = `
     <div class="w-6 h-6 rounded-lg ${iconBg} flex items-center justify-center shrink-0">
       <i class="fa-solid ${iconClass} text-sm"></i>
@@ -101,15 +89,14 @@ window.showToast = function (type, message) {
 };
 
 /* ========================================================================
-   💡 INDEXED-DB OFFLINE QUEUE & AUTO-SYNC ENGINE
-   (အင်တာနက်မရှိချိန် စက်ထဲသိမ်းပြီး လိုင်းရပါက D1 သို့ Auto-Upload လုပ်ခြင်း)
+   INDEXED-DB OFFLINE QUEUE & AUTO-SYNC ENGINE
    ======================================================================== */
 
 const OFFLINE_DB_NAME = "YogiOfflineDB";
 const OFFLINE_STORE_NAME = "offline_sync_queue";
 
 function openOfflineDB() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     if (!window.indexedDB) {
       resolve(null);
       return;
@@ -126,19 +113,18 @@ function openOfflineDB() {
   });
 }
 
-// အော့ဖ်လိုင်းမှတ်တမ်း စက်ထဲသိမ်းခြင်း
 async function addToOfflineQueue(action, payload) {
   try {
     const db = await openOfflineDB();
     if (!db) return false;
+    // Generate Idempotency clientTxId if not present
+    if (!payload.clientTxId) {
+      payload.clientTxId = 'CLI-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    }
     return new Promise((resolve) => {
       const tx = db.transaction(OFFLINE_STORE_NAME, "readwrite");
       const store = tx.objectStore(OFFLINE_STORE_NAME);
-      store.add({
-        action,
-        payload,
-        createdAt: new Date().toISOString()
-      });
+      store.add({ action, payload, createdAt: new Date().toISOString() });
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => resolve(false);
     });
@@ -147,7 +133,6 @@ async function addToOfflineQueue(action, payload) {
   }
 }
 
-// အော့ဖ်လိုင်းမှတ်တမ်းများ ပြန်ဆွဲထုတ်ခြင်း
 async function getOfflineQueue() {
   try {
     const db = await openOfflineDB();
@@ -164,7 +149,6 @@ async function getOfflineQueue() {
   }
 }
 
-// ပို့ပြီးသား မှတ်တမ်းအား စက်ထဲမှ ရှင်းထုတ်ခြင်း
 async function removeOfflineQueueItem(id) {
   try {
     const db = await openOfflineDB();
@@ -176,12 +160,8 @@ async function removeOfflineQueueItem(id) {
 
 let isAutoSyncing = false;
 
-/**
- * 💡 Background Auto-Sync: လိုင်းရလာသည်နှင့် D1 ဆီသို့ စာရင်းများ အလိုအလျောက် ပို့ပေးခြင်း
- */
 window.processOfflineQueue = async function () {
   if (!navigator.onLine || isAutoSyncing) return;
-
   const queue = await getOfflineQueue();
   if (!queue || queue.length === 0) return;
 
@@ -190,15 +170,14 @@ window.processOfflineQueue = async function () {
 
   for (const item of queue) {
     try {
-      // Force direct API call without recursive queueing
       const res = await window.callApi(item.action, item.payload, { skipOfflineQueue: true });
       if (res && res.success) {
         await removeOfflineQueueItem(item.id);
         syncedCount++;
       }
     } catch (e) {
-      console.warn("[Auto-Sync Warning] Item failed, will retry later:", e);
-      break; // လိုင်းမတည်ငြိမ်ပါက နောက်မှ ထပ်စမ်းမည်
+      console.warn("[Auto-Sync Warning] Item failed:", e);
+      break;
     }
   }
 
@@ -206,9 +185,7 @@ window.processOfflineQueue = async function () {
 
   if (syncedCount > 0) {
     window.clearReadCache();
-    window.showToast("SUCCESS", `✅ အော့ဖ်လိုင်း မှတ်တမ်း (${syncedCount}) ခုကို ဆာဗာသို့ အောင်မြင်စွာ တင်ပြီးပါပြီ။`);
-
-    // လက်ရှိ စာမျက်နှာကို ဒေတာအသစ်ဖြင့် အလိုအလျောက် Refresh လုပ်ပေးခြင်း
+    window.showToast("SUCCESS", `✅ အော့ဖ်လိုင်း မှတ်တမ်း (${syncedCount}) ခုကို ဆာဗာသို့ တင်ပြီးပါပြီ။`);
     if (window.AppState) {
       const tab = window.AppState.currentTab;
       if (tab === "cashbook" && typeof window.renderCashbook === "function") {
@@ -222,16 +199,10 @@ window.processOfflineQueue = async function () {
   }
 };
 
-// လိုင်း ပြန်ရလာချိန်တွင် အလိုအလျောက် Auto-Sync စတင်ခေါ်ယူခြင်း
 window.addEventListener("online", () => {
   setTimeout(() => window.processOfflineQueue(), 1500);
 });
 
-/* ========================================================================
-   CENTRAL API REQUEST BRIDGE
-   ======================================================================== */
-
-// အော့ဖ်လိုင်းအချိန်တွင် စက်ထဲသိမ်းဆည်းမည့် စာရင်းသွင်း/ပြင်/ဖျက် Actions များ
 const WRITE_ACTIONS = new Set([
   "saveYogi", "updateYogi", "deleteYogi", "toggleYogiStatus", "postYogi", "importYogi",
   "saveLeader", "updateLeader", "deleteLeader", "toggleLeaderStatus",
@@ -244,33 +215,25 @@ window.callApi = async function (action, payload = {}, opts = {}) {
   const isWrite = WRITE_ACTIONS.has(action);
   const cacheKey = `${action}:${JSON.stringify(payload)}`;
 
-  // ၁။ Read Request ဖြစ်ပါက Cache ထဲမှ အရင်ထုတ်ယူခြင်း
   if (isRead && !opts.forceRefresh && window.gReadCache[cacheKey]) {
     return window.gReadCache[cacheKey];
   }
 
-  // 💡 ၂။ အင်တာနက် မရှိချိန် (Offline) ဖြစ်ပါက စက်ထဲသို့ တိုက်ရိုက် သိမ်းဆည်းခြင်း
   if (!navigator.onLine && isWrite && !opts.skipOfflineQueue) {
     await addToOfflineQueue(action, payload);
-    window.showToast("WARN", "အင်တာနက် မရှိသဖြင့် စက်ထဲတွင် ယာယီသိမ်းထားပါသည်။ လိုင်းရပါက ဆာဗာသို့ အလိုအလျောက် ပို့ပေးပါမည်။");
-    return {
-      success: true,
-      offline: true,
-      message: "အော့ဖ်လိုင်း ယာယီသိမ်းဆည်းပြီးပါပြီ။"
-    };
+    window.showToast("WARN", "အင်တာနက် မရှိသဖြင့် စက်ထဲတွင် သိမ်းဆည်းထားပါသည်။ လိုင်းရပါက တင်ပေးပါမည်။");
+    return { success: true, offline: true, message: "အော့ဖ်လိုင်း ယာယီသိမ်းဆည်းပြီးပါပြီ။" };
   }
 
   const token = window.AppState.authToken || localStorage.getItem(CONFIG_KEYS.TOKEN) || "";
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  // 💡 Subdomain အသစ်သို့ Fallback ပြင်ဆင်ထားပါသည်
   let baseUrl = (typeof window.getApiUrl === "function" && window.getApiUrl()) ||
                 (window.CONFIG && window.CONFIG.API_URL) || 
                 "https://yogi-list.pathana.workers.dev";
 
   const fetchOpts = { method, headers };
-
   const cleanPayload = {};
   Object.keys(payload).forEach(key => {
     if (payload[key] !== undefined && payload[key] !== null) {
@@ -280,44 +243,27 @@ window.callApi = async function (action, payload = {}, opts = {}) {
 
   let url = baseUrl;
   if (method === "GET") {
-    const params = new URLSearchParams({ action, token, ...cleanPayload });
+    const params = new URLSearchParams({ action, ...cleanPayload });
     url += (url.includes("?") ? "&" : "?") + params.toString();
   } else {
-    fetchOpts.body = JSON.stringify({ action, token, ...cleanPayload });
+    fetchOpts.body = JSON.stringify({ action, ...cleanPayload });
   }
 
   let response;
   try {
     response = await fetch(url, fetchOpts);
   } catch (err) {
-    console.warn("Fetch Network Issue:", err);
-
-    // 💡 ၃။ Fetch လုပ်နေစဉ် လိုင်းပြတ်တောက်သွားပါက အလိုအလျောက် Offline Queue ထဲ ထည့်ပေးခြင်း
     if (isWrite && !opts.skipOfflineQueue) {
       await addToOfflineQueue(action, payload);
-      window.showToast("WARN", "လိုင်းပြတ်သွားသဖြင့် စက်ထဲတွင် ယာယီသိမ်းထားပါသည်။ လိုင်းပြန်ရပါက ဆာဗာသို့ အလိုအလျောက် ပို့ပေးပါမည်။");
-      return {
-        success: true,
-        offline: true,
-        message: "အော့ဖ်လိုင်း ယာယီသိမ်းဆည်းပြီးပါပြီ။"
-      };
+      window.showToast("WARN", "လိုင်းပြတ်သွားသဖြင့် စက်ထဲတွင် သိမ်းဆည်းထားပါသည်။");
+      return { success: true, offline: true, message: "အော့ဖ်လိုင်း သိမ်းဆည်းပြီးပါပြီ။" };
     }
-
-    if (isRead && window.gReadCache[cacheKey]) {
-      return window.gReadCache[cacheKey]; // အရင်ဒေတာဟောင်း ပြန်ပြပေးခြင်း
-    }
-
-    window.showToast("ERROR", `ဆာဗာ ချိတ်ဆက်၍မရပါ: အင်တာနက် ချိတ်ဆက်မှုကို စစ်ဆေးပါ။`);
+    if (isRead && window.gReadCache[cacheKey]) return window.gReadCache[cacheKey];
     throw err;
   }
 
-  // Handle Unauthorized / Token Expired
   if (response.status === 401) {
-    if (typeof window.handleSessionExpired === "function") {
-      window.handleSessionExpired();
-    } else if (typeof window.handleLogout === "function") {
-      window.handleLogout();
-    }
+    if (typeof window.handleLogout === "function") window.handleLogout();
     throw new Error("Session expired");
   }
 
@@ -325,27 +271,11 @@ window.callApi = async function (action, payload = {}, opts = {}) {
   try {
     result = await response.json();
   } catch {
-    result = { success: false, message: "Server response ကို ဖတ်၍မရပါ။" };
+    result = { success: false, message: "Server response error." };
   }
 
-  if (!response.ok && result.success !== false) {
-    result = { success: false, message: result.message || `HTTP ${response.status}` };
-  }
-
-  // Update Cache
-  if (isRead && result.success) {
-    window.gReadCache[cacheKey] = result;
-  }
-  if (!isRead && result.success) {
-    window.clearReadCache();
-  }
+  if (isRead && result.success) window.gReadCache[cacheKey] = result;
+  if (!isRead && result.success) window.clearReadCache();
 
   return result;
 };
-
-// စာမျက်နှာ စတင်ပွင့်ချိန်တွင် အော့ဖ်လိုင်းကျန်နေသော စာရင်းများရှိပါက Auto-Sync စစ်ဆေးခြင်း
-document.addEventListener("DOMContentLoaded", () => {
-  if (navigator.onLine) {
-    setTimeout(() => window.processOfflineQueue(), 2000);
-  }
-});
