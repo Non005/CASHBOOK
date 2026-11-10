@@ -1,7 +1,7 @@
 /**
  * ========================================================================
- * handlers-dashboard.js DASHBOARD & TOTAL LIST HANDLERS
- * (ယောဂီစာရင်းချုပ် + ဦးဆောင်ယောဂီ + ငွေစာရင်းချုပ်)
+ * handlers-dashboard.js — DASHBOARD & TOTAL LIST HANDLERS
+ * (D1 Quota & Read Optimized — Loop Queries Eliminated)
  * ========================================================================
  */
 
@@ -32,37 +32,45 @@ function mapYogiRow(r) {
     address: r.address,
     introducer: r.introducer,
     email: r.email,
-    gender: r.gender,
+    gender: r.gender || "ကျား",
     status: r.status,
     statusDate: r.status_date,
-    posted: r.posted,
+    posted: !!r.posted,
     createdBy: r.created_by,
+    updatedBy: r.updated_by || r.created_by,
     createdAt: r.created_at,
     updatedAt: r.updated_at
   };
 }
 
+/**
+ * ၁။ Dashboard အကျဉ်းချုပ် ဒေတာများ ဆွဲထုတ်ခြင်း
+ */
 export async function handleGetDashboardData(db) {
-  // ၁။ အဆင့် ၁ မှ ၇ အထိ Active ဖြစ်သော ယောဂီ စာရင်းချုပ်
+  // ၁။ အဆင့် ၁ မှ ၇ အထိ Active ဖြစ်သော ယောဂီ စုစုပေါင်း
   const overall = await db.prepare(
     `SELECT
-       SUM(CASE WHEN status='Active' AND level <= 7 THEN 1 ELSE 0 END) as totalActive,
-       SUM(CASE WHEN status='Active' AND level <= 7 AND gender='ကျား' THEN 1 ELSE 0 END) as activeMale,
-       SUM(CASE WHEN status='Active' AND level <= 7 AND gender='မ' THEN 1 ELSE 0 END) as activeFemale
+       COALESCE(SUM(CASE WHEN status='Active' AND level <= 7 THEN 1 ELSE 0 END), 0) as totalActive,
+       COALESCE(SUM(CASE WHEN status='Active' AND level <= 7 AND gender='ကျား' THEN 1 ELSE 0 END), 0) as activeMale,
+       COALESCE(SUM(CASE WHEN status='Active' AND level <= 7 AND gender='မ' THEN 1 ELSE 0 END), 0) as activeFemale
      FROM yogis`
-  ).first().catch(() => null);
+  ).first().catch(() => ({ totalActive: 0, activeMale: 0, activeFemale: 0 }));
 
   // ၂။ ကမ္မဋ္ဌာန်း အဆင့်အလိုက် ကျား/မ စာရင်းခွဲများ
   const perLevelRes = await db.prepare(
     `SELECT level,
-        SUM(CASE WHEN status='Active' AND gender='ကျား' THEN 1 ELSE 0 END) as male,
-        SUM(CASE WHEN status='Active' AND gender='မ' THEN 1 ELSE 0 END) as female,
-        SUM(CASE WHEN status='Active' THEN 1 ELSE 0 END) as total
-     FROM yogis WHERE level <= 7 GROUP BY level`
+        COALESCE(SUM(CASE WHEN status='Active' AND gender='ကျား' THEN 1 ELSE 0 END), 0) as male,
+        COALESCE(SUM(CASE WHEN status='Active' AND gender='မ' THEN 1 ELSE 0 END), 0) as female,
+        COALESCE(SUM(CASE WHEN status='Active' THEN 1 ELSE 0 END), 0) as total
+     FROM yogis 
+     WHERE level <= 7 
+     GROUP BY level`
   ).all().catch(() => ({ results: [] }));
 
   const perLevelMap = {};
-  (perLevelRes.results || []).forEach(r => { perLevelMap[r.level] = r; });
+  (perLevelRes.results || []).forEach(r => { 
+    perLevelMap[r.level] = r; 
+  });
 
   const perLevel = LEVELS.filter(l => l.id <= 7).map(l => ({
     level: l.id,
@@ -75,13 +83,13 @@ export async function handleGetDashboardData(db) {
   // ၃။ ဦးဆောင်ဆွေးနွေး ယောဂီ စာရင်းချုပ်
   const leaderAgg = await db.prepare(
     `SELECT
-       SUM(CASE WHEN status='Active' THEN 1 ELSE 0 END) as total,
-       SUM(CASE WHEN status='Active' AND gender='ကျား' THEN 1 ELSE 0 END) as male,
-       SUM(CASE WHEN status='Active' AND gender='မ' THEN 1 ELSE 0 END) as female
+       COALESCE(SUM(CASE WHEN status='Active' THEN 1 ELSE 0 END), 0) as total,
+       COALESCE(SUM(CASE WHEN status='Active' AND gender='ကျား' THEN 1 ELSE 0 END), 0) as male,
+       COALESCE(SUM(CASE WHEN status='Active' AND gender='မ' THEN 1 ELSE 0 END), 0) as female
      FROM leaders`
-  ).first().catch(() => null);
+  ).first().catch(() => ({ total: 0, male: 0, female: 0 }));
 
-  // 💡 ၄။ ငွေစာရင်း (Cashbook) ခေါင်းစဉ်အလိုက် စုစုပေါင်း ဝင်ငွေ၊ ထွက်ငွေ၊ လက်ကျန် တွက်ချက်ခြင်း
+  // ၄။ ငွေစာရင်း (Cashbook) ခေါင်းစဉ်အလိုက် စုစုပေါင်း ဝင်ငွေ၊ ထွက်ငွေ၊ လက်ကျန်
   const cashAgg = await db.prepare(
     `SELECT category,
        COALESCE(SUM(income), 0) as totalIncome,
@@ -95,12 +103,14 @@ export async function handleGetDashboardData(db) {
   let totalCashExpense = 0;
 
   (cashAgg.results || []).forEach(r => {
+    const inc = Number(r.totalIncome || 0);
+    const exp = Number(r.totalExpense || 0);
     cashCatMap[r.category] = {
-      income: Number(r.totalIncome || 0),
-      expense: Number(r.totalExpense || 0)
+      income: inc,
+      expense: exp
     };
-    totalCashIncome += Number(r.totalIncome || 0);
-    totalCashExpense += Number(r.totalExpense || 0);
+    totalCashIncome += inc;
+    totalCashExpense += exp;
   });
 
   return {
@@ -115,7 +125,6 @@ export async function handleGetDashboardData(db) {
         male: (leaderAgg && leaderAgg.male) || 0,
         female: (leaderAgg && leaderAgg.female) || 0
       },
-      // 💡 Dashboard ပေါ်တွင် ပြသမည့် ငွေစာရင်း အကျဉ်းချုပ် Data
       cashSummary: {
         totalIncome: totalCashIncome,
         totalExpense: totalCashExpense,
@@ -126,26 +135,42 @@ export async function handleGetDashboardData(db) {
   };
 }
 
+/**
+ * ၂။ စုစုပေါင်း စာရင်းထုတ်ခြင်း (Loop မပတ်ဘဲ Single Query ဖြင့် အမြန်ဆုံး ဆွဲယူခြင်း)
+ */
 export async function handleGetTotalListData(db) {
-  const out = [];
-  const activeLevels = LEVELS.filter(l => l.id <= 7);
+  // Loop ပတ် Query ခေါ်ယူခြင်း မပြုတော့ဘဲ တစ်ကြိမ်တည်း ဆွဲယူခြင်း
+  const yogisRes = await db.prepare(
+    `SELECT id, unique_id, group_id, level, seq_no, name, age, gender, phone, address, reg_date, status
+     FROM yogis 
+     WHERE level <= 7 AND status = 'Active' 
+     ORDER BY level ASC, id DESC`
+  ).all().catch(() => ({ results: [] }));
 
-  for (const l of activeLevels) {
-    const res = await db.prepare(
-      `SELECT id, unique_id, name, age, gender, phone, reg_date, status
-       FROM yogis WHERE level=? AND status='Active' ORDER BY id DESC`
-    ).bind(l.id).all().catch(() => ({ results: [] }));
-
-    out.push({ 
-      level: l.id, 
-      name: l.name, 
-      rows: (res.results || []).map(mapYogiRow) 
-    });
+  // Level အလိုက် Map ဖွဲ့စည်းခြင်း
+  const yogiByLevel = {};
+  for (let i = 1; i <= 7; i++) {
+    yogiByLevel[i] = [];
   }
 
+  (yogisRes.results || []).forEach(r => {
+    if (yogiByLevel[r.level]) {
+      yogiByLevel[r.level].push(mapYogiRow(r));
+    }
+  });
+
+  const out = LEVELS.filter(l => l.id <= 7).map(l => ({
+    level: l.id,
+    name: l.name,
+    rows: yogiByLevel[l.id] || []
+  }));
+
+  // ဦးဆောင်ဆွေးနွေး ယောဂီများ ဆွဲယူခြင်း
   const leadersRes = await db.prepare(
-    `SELECT id, unique_id, name, age, gender, phone, reg_date, status
-     FROM leaders WHERE status='Active' ORDER BY id DESC`
+    `SELECT id, unique_id, seq_no, name, age, gender, phone, address, reg_date, status
+     FROM leaders 
+     WHERE status = 'Active' 
+     ORDER BY id DESC`
   ).all().catch(() => ({ results: [] }));
 
   out.push({ 
