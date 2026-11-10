@@ -1,6 +1,6 @@
 /**
  * ========================================================================
- * YOGI MANAGEMENT SYSTEM — Service Worker (PWA)
+ * YOGI MANAGEMENT SYSTEM — Service Worker (PWA) 
  * File: sw.js (Optimized for Network-First & Cache Management)
  * ========================================================================
  */
