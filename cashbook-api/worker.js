@@ -1,11 +1,10 @@
 /**
  * ========================================================================
- * YOGI MANAGEMENT SYSTEM — Cloudflare Worker API (worker.js)
- * Clean Modular Architecture (Imports from handlers)
+ * YOGI & CASHBOOK MANAGEMENT SYSTEM — Cloudflare Worker API (worker.js)
+ * Clean Modular Architecture (Hardened Security & D1 Quota Optimized)
  * ========================================================================
  */
 
-// 💡 သက်ဆိုင်ရာ Handlers ဖိုင်များမှ Function များကို ချိတ်ဆက်ယူခြင်း
 import { handleGetDashboardData, handleGetTotalListData } from "./handlers-dashboard.js";
 import { 
   handleGetYogiData, handleSaveYogi, handleUpdateYogi, 
@@ -13,31 +12,41 @@ import {
 } from "./handlers-yogi.js";
 import { 
   handleGetLeaderData, handleSaveLeader, handleUpdateLeader, 
-  handleDeleteLeader, handleToggleLeaderStatus 
+  handleDeleteLeader, handleToggleLeaderStatus, handleImportLeader 
 } from "./handlers-ledger.js";
 import { 
   handleGetCashbookData, handleSaveCashbook, 
   handleUpdateCashbook, handleDeleteCashbook, handleImportCashbook 
 } from "./handlers-cashbook.js";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-  "Access-Control-Max-Age": "86400"
-};
+/* --------------------------- CORS Configurations --------------------------- */
+function getCorsHeaders(request) {
+  const origin = request.headers.get("Origin") || "*";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin"
+  };
+}
 
-function json(data, status = 200) {
+function json(data, status = 200, corsHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8", ...CORS_HEADERS }
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...corsHeaders
+    }
   });
 }
 
-/* --------------------------- Security & Tokens --------------------------- */
+/* --------------------------- Cryptography & Tokens --------------------------- */
 
 function b64url(bytesOrStr) {
-  let str = typeof bytesOrStr === "string" ? btoa(unescape(encodeURIComponent(bytesOrStr))) : btoa(String.fromCharCode(...new Uint8Array(bytesOrStr)));
+  let str = typeof bytesOrStr === "string" 
+    ? btoa(unescape(encodeURIComponent(bytesOrStr))) 
+    : btoa(String.fromCharCode(...new Uint8Array(bytesOrStr)));
   return str.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
@@ -48,7 +57,13 @@ function b64urlDecode(str) {
 }
 
 async function hmacKey(secret) {
-  return crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+  return crypto.subtle.importKey(
+    "raw", 
+    new TextEncoder().encode(secret), 
+    { name: "HMAC", hash: "SHA-256" }, 
+    false, 
+    ["sign", "verify"]
+  );
 }
 
 async function signToken(payload, secret) {
@@ -68,18 +83,65 @@ async function verifyToken(token, secret) {
     const payload = JSON.parse(b64urlDecode(body));
     if (payload.exp && Date.now() > payload.exp) return null;
     return payload;
-  } catch { return null; }
+  } catch { 
+    return null; 
+  }
 }
 
+/**
+ * Header-Only Token Verification (ကာကွယ်ရေး: URL Query param token မသုံးရ)
+ */
 async function requireAuth(request, env) {
-  const url = new URL(request.url);
-  let token = request.headers.get("Authorization")?.replace("Bearer ", "") || url.searchParams.get("token") || "";
-  return await verifyToken(token, env.AUTH_SECRET || "dev-insecure-secret-change-me");
+  const authHeader = request.headers.get("Authorization") || "";
+  if (!authHeader.startsWith("Bearer ")) return null;
+  const token = authHeader.slice(7).trim();
+  const secret = env.AUTH_SECRET;
+  if (!secret) {
+    console.error("[CRITICAL] AUTH_SECRET is not configured in Wrangler environment variables.");
+    return null;
+  }
+  return await verifyToken(token, secret);
 }
 
-async function sha256Hex(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+/* --------------------------- Password Hashing Engine --------------------------- */
+
+// PBKDF2 Password Verifier
+async function verifyPassword(password, storedHash) {
+  if (!storedHash || !password) return false;
+
+  // ၁။ PBKDF2 format: "pbkdf2$<iterations>$<saltHex>$<hashHex>"
+  if (storedHash.startsWith("pbkdf2$")) {
+    const parts = storedHash.split("$");
+    if (parts.length !== 4) return false;
+    const iterations = parseInt(parts[1], 10);
+    const salt = new Uint8Array(parts[2].match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+    const expectedHashHex = parts[3];
+
+    const passKey = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(password),
+      { name: "PBKDF2" },
+      false,
+      ["deriveBits"]
+    );
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt,
+        iterations,
+        hash: "SHA-256"
+      },
+      passKey,
+      256
+    );
+    const derivedHex = [...new Uint8Array(derivedBits)].map(b => b.toString(16).padStart(2, "0")).join("");
+    return derivedHex === expectedHashHex;
+  }
+
+  // ၂။ Legacy SHA-256 Compatibility Check (စာရင်းဟောင်းအတွက်)
+  const legacyBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
+  const legacyHex = [...new Uint8Array(legacyBuf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  return legacyHex === storedHash || password === storedHash;
 }
 
 /* --------------------------- Login Handler --------------------------- */
@@ -92,46 +154,35 @@ async function handleCheckLogin(db, payload, env) {
     return { success: false, message: "အသုံးပြုသူအမည်နှင့် လျှို့ဝှက်နံပါတ် ဖြည့်သွင်းပါ။" };
   }
 
-  // 💡 ၁။ Auto-Login အတွက် သက်တမ်းကို ၁ နှစ် (365 ရက်) တိတိ သတ်မှတ်ပေးခြင်း
-  const expiresInMs = 365 * 24 * 60 * 60 * 1000;
-
-  // 💡 ၂။ Admin နှင့် ဓမ္မဝန်ဆောင် အတွက် Password: 123456 တိုက်ရိုက် စစ်ဆေးခြင်း
-  const isFallbackAdmin = (username === 'Admin' && (password === '123456' || password === 'Admin@123'));
-  const isFallbackDhamma = ((username === 'ဓမ္မဝန်ဆောင်' || username.startsWith('ဓမ္မဝန်ဆောင်')) && (password === '123456' || password.includes('@123')));
-
-  if (isFallbackAdmin || isFallbackDhamma) {
-    const token = await signToken(
-      { u: username, exp: Date.now() + expiresInMs },
-      env.AUTH_SECRET || "dev-insecure-secret-change-me"
-    );
-    return {
-      success: true,
-      token,
-      expiresInMs,
-      user: { username, role: username === 'Admin' ? 'Admin' : 'Member' }
-    };
+  const secret = env.AUTH_SECRET;
+  if (!secret) {
+    return { success: false, message: "Server authentication setup မပြည့်စုံပါ။ (AUTH_SECRET လိုအပ်သည်)" };
   }
 
-  // Database (users table) စစ်ဆေးခြင်း
+  // Token သက်တမ်း ၃၀ ရက် သတ်မှတ်ခြင်း (Security Best Practice)
+  const expiresInMs = 30 * 24 * 60 * 60 * 1000;
+
   try {
     const user = await db.prepare("SELECT * FROM users WHERE username = ?").bind(username).first();
+    
     if (user) {
-      const hash = await sha256Hex(password);
-      if (password === user.password_hash || hash === user.password_hash || password === "123456") {
+      const isValid = await verifyPassword(password, user.password_hash);
+      if (isValid) {
+        const role = user.role || (username.toLowerCase() === "admin" ? "Admin" : "Member");
         const token = await signToken(
-          { u: user.username, exp: Date.now() + expiresInMs },
-          env.AUTH_SECRET || "dev-insecure-secret-change-me"
+          { u: user.username, role, exp: Date.now() + expiresInMs },
+          secret
         );
         return {
           success: true,
           token,
           expiresInMs,
-          user: { username: user.username, role: user.role || "Member" }
+          user: { username: user.username, role }
         };
       }
     }
   } catch (err) {
-    console.error("[DB Login Warning] users table error:", err);
+    console.error("[Login Error] DB Query Exception:", err);
   }
 
   return { success: false, message: "အသုံးပြုသူအမည် သို့မဟုတ် လျှို့ဝှက်နံပါတ် မှားယွင်းနေပါသည်။" };
@@ -166,16 +217,16 @@ async function routeAction(action, payload, env, session) {
       return handleSaveYogi(db, payload, session);
 
     case "updateYogi":
-      return handleUpdateYogi(db, payload);
+      return handleUpdateYogi(db, payload, session);
 
     case "deleteYogi":
-      return handleDeleteYogi(db, payload);
+      return handleDeleteYogi(db, payload, session);
 
     case "toggleYogiStatus":
-      return handleToggleYogiStatus(db, payload);
+      return handleToggleYogiStatus(db, payload, session);
 
     case "postYogi":
-      return handlePostYogi(db, payload);
+      return handlePostYogi(db, payload, session);
 
     case "importYogi":
       return handleImportYogi(db, payload, session);
@@ -188,15 +239,18 @@ async function routeAction(action, payload, env, session) {
       return handleSaveLeader(db, payload, session);
 
     case "updateLeader":
-      return handleUpdateLeader(db, payload);
+      return handleUpdateLeader(db, payload, session);
 
     case "deleteLeader":
-      return handleDeleteLeader(db, payload);
+      return handleDeleteLeader(db, payload, session);
 
     case "toggleLeaderStatus":
-      return handleToggleLeaderStatus(db, payload);
+      return handleToggleLeaderStatus(db, payload, session);
 
-    // 💡 ငွေစာရင်း (Cashbook) Handlers
+    case "importLeader":
+      return handleImportLeader(db, payload, session);
+
+    // Cashbook Handlers
     case "getCashbookData":
       return handleGetCashbookData(db, payload);
 
@@ -204,7 +258,7 @@ async function routeAction(action, payload, env, session) {
       return handleSaveCashbook(db, payload, session);
 
     case "updateCashbook":
-      return handleUpdateCashbook(db, payload);
+      return handleUpdateCashbook(db, payload, session);
 
     case "deleteCashbook":
       return handleDeleteCashbook(db, payload, session);
@@ -219,12 +273,14 @@ async function routeAction(action, payload, env, session) {
 
 export default {
   async fetch(request, env) {
+    const corsHeaders = getCorsHeaders(request);
+
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
     if (!env.DB) {
-      return json({ success: false, message: "D1 database binding (DB) is not configured." }, 500);
+      return json({ success: false, message: "D1 database connection မရှိပါ။" }, 500, corsHeaders);
     }
 
     let action = "";
@@ -240,24 +296,28 @@ export default {
         action = body.action || "";
         payload = body;
       }
-    } catch (e) {
-      return json({ success: false, message: "Invalid request payload." }, 400);
+    } catch {
+      return json({ success: false, message: "Invalid request payload." }, 400, corsHeaders);
     }
 
-    if (!action) return json({ success: true, message: "Yogi Management System API is running." });
+    if (!action) {
+      return json({ success: true, message: "Yogi & Cashbook System API is running." }, 200, corsHeaders);
+    }
 
     let session = null;
     if (!PUBLIC_ACTIONS.has(action)) {
       session = await requireAuth(request, env);
-      if (!session) return json({ success: false, message: "Session expired or unauthorized." }, 401);
+      if (!session) {
+        return json({ success: false, message: "Session သက်တမ်းကုန်ဆုံးသွားပါပြီ။ ကျေးဇူးပြု၍ ပြန်လည် Login ဝင်ပါ။" }, 401, corsHeaders);
+      }
     }
 
     try {
       const result = await routeAction(action, payload, env, session);
-      return json(result);
+      return json(result, 200, corsHeaders);
     } catch (err) {
-      console.error(`[Worker Error] action=${action}`, err);
-      return json({ success: false, message: "Server error: " + (err && err.message ? err.message : String(err)) }, 500);
+      console.error(`[Worker Execution Error] action=${action}`, err);
+      return json({ success: false, message: "ဆာဗာတွင် လုပ်ဆောင်ချက် မှားယွင်းနေပါသည်။ ခေတ္တစောင့်ပြီး ပြန်လည်ကြိုးစားပါ။" }, 500, corsHeaders);
     }
   }
 };
