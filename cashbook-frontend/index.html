@@ -57,12 +57,10 @@
     html.not-authed #login-overlay { display: flex !important; }
     html.not-authed #erp-workspace { display: none !important; }
 
-    /* စာသားမရှိသေးပါက Login Error Bar အပိုကြီး မပေါ်စေရန် */
     #login-error:empty {
       display: none !important;
     }
 
-    /* Header ရက်စွဲအချိန် CSS */
     .header-datetime {
       display: inline-block !important;
       color: #fde68a !important;
@@ -118,10 +116,19 @@
             class="w-full p-3 bg-[#080d1a] border border-amber-500/30 rounded-xl text-xs text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25 transition font-bold cursor-pointer">
           </select>
         </div>
+        
+        <!-- 💡 Password Input with Show/Hide Eye Toggle -->
         <div>
           <label class="block font-bold text-[11px] text-amber-200/90 uppercase tracking-widest mb-1.5">Password</label>
-          <input type="password" id="login-password" required placeholder="လျှို့ဝှက်နံပါတ် ရိုက်ထည့်ပါ..."
-            class="w-full p-3 bg-[#080d1a] border border-amber-500/30 rounded-xl text-xs text-slate-100 placeholder:text-slate-600 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25 transition">
+          <div class="relative">
+            <input type="password" id="login-password" required placeholder="လျှို့ဝှက်နံပါတ် ရိုက်ထည့်ပါ..."
+              class="w-full p-3 pr-10 bg-[#080d1a] border border-amber-500/30 rounded-xl text-xs text-slate-100 placeholder:text-slate-600 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25 transition">
+            
+            <button type="button" onclick="togglePasswordVisibility()" 
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 transition cursor-pointer p-1" title="Password ကြည့်ရန် / ဖျောက်ရန်">
+              <i id="eye-icon" class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
         </div>
         
         <div id="login-error" style="display: none;" class="hidden text-rose-400 font-semibold text-[11px] bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl text-center"></div>
@@ -146,11 +153,9 @@
   <!-- Main Workspace -->
   <div id="erp-workspace" class="hidden h-screen w-screen flex flex-row overflow-hidden bg-[#090d16] relative">
     
-    <!-- Mobile & Tablet Backdrop Overlay -->
     <div id="sidebar-backdrop" onclick="toggleMobileSidebar(true)" style="display: none;"
          class="fixed inset-0 bg-black/75 backdrop-blur-sm cursor-pointer transition-opacity z-[9998]"></div>
 
-    <!-- Left Sidebar Drawer -->
     <aside id="main-sidebar" class="bg-[#0c1220] border-r border-amber-500/20 flex flex-col h-full shrink-0">
       <div class="h-[64px] px-4 border-b border-amber-500/20 flex items-center justify-between bg-[#0e172a] shrink-0">
         <div class="flex items-center gap-2.5 font-black text-sm text-amber-400 min-w-0 overflow-hidden">
@@ -170,10 +175,8 @@
       <nav class="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto" id="sidebar-nav"></nav>
     </aside>
 
-    <!-- Right Content Area -->
     <div id="main-content-area" class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#090d16] w-full">
       
-      <!-- Top Navigation Header -->
       <header class="h-[64px] bg-[#0c1220] border-b border-amber-500/20 px-3 sm:px-6 flex items-center justify-between shrink-0 z-30 gap-2">
         <div class="flex items-center gap-3 min-w-0">
           <button id="mobile-menu-btn" onclick="toggleMobileSidebar()" 
@@ -184,22 +187,13 @@
           <h1 id="page-title" class="text-base sm:text-lg font-black text-amber-300/90 truncate tracking-wide">ပင်မစာမျက်နှာ</h1>
         </div>
 
-        <!-- 💡 Header Right Badge (WiFi/Offline Icon သီးသန့် + Date + Admin) -->
         <div style="display: inline-flex; align-items: center; gap: 0.65rem; padding: 0.35rem 0.85rem; background-color: #070d18; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 0.75rem; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; font-size: 0.75rem; font-weight: 800; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); white-space: nowrap;">
-          
-          <!-- ၁။ WiFi (Online) / Offline Status (Icon သီးသန့်) -->
           <span id="header-network-status" style="display: inline-flex; align-items: center; color: #34d399;" title="Online">
             <i class="fa-solid fa-wifi" style="font-size: 0.85rem;"></i>
           </span>
-
           <span class="header-datetime-divider">|</span>
-
-          <!-- ၂။ Live ရက်စွဲနှင့် အချိန် နာရီ: 16 Oct 26 | Fri | 8:35 pm -->
           <span id="header-live-datetime" class="header-datetime">--</span>
-
           <span style="color: rgba(245, 158, 11, 0.4); font-weight: 900;">|</span>
-
-          <!-- ၃။ User Badge (Admin) -->
           <span style="display: inline-flex; align-items: center; gap: 0.35rem; color: #34d399;">
             <i class="fa-solid fa-user" style="font-size: 0.75rem;"></i>
             <span id="live-user-name">Admin</span>
@@ -207,7 +201,6 @@
         </div>
       </header>
 
-      <!-- Main Content -->
       <main class="flex-1 p-3 sm:p-6 overflow-y-auto relative bg-[#090d16]">
         <div id="view-container" class="max-w-7xl mx-auto w-full"></div>
       </main>
@@ -215,7 +208,6 @@
 
   </div>
 
-  <!-- Loading Overlay -->
   <div id="loading-overlay" style="display: none !important;"
        class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[250] flex flex-col items-center justify-center">
     <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-400 mb-3"></div>
@@ -226,7 +218,23 @@
 
   <!-- JavaScript Controls -->
   <script>
-    // Loading Overlay Helper
+    // Password Show/Hide Toggle Function
+    function togglePasswordVisibility() {
+      const pwdInput = document.getElementById("login-password");
+      const eyeIcon = document.getElementById("eye-icon");
+      if (!pwdInput) return;
+
+      if (pwdInput.type === "password") {
+        pwdInput.type = "text";
+        eyeIcon.classList.remove("fa-eye");
+        eyeIcon.classList.add("fa-eye-slash");
+      } else {
+        pwdInput.type = "password";
+        eyeIcon.classList.remove("fa-eye-slash");
+        eyeIcon.classList.add("fa-eye");
+      }
+    }
+
     window.toggleLoading = function(show) {
       const el = document.getElementById('loading-overlay');
       if (!el) return;
@@ -239,14 +247,12 @@
     window.showLoading = () => window.toggleLoading(true);
     window.hideLoading = () => window.toggleLoading(false);
 
-    // Safety Guard: 4 စက္ကန့်အကြာတွင် Loading ပိတ်ပေးခြင်း
     window.addEventListener('load', () => {
       setTimeout(() => {
         window.hideLoading();
       }, 4000);
     });
 
-    // Mobile Sidebar အဖွင့်/အပိတ်
     window.toggleMobileSidebar = function(forceClose = false) {
       const sidebar = document.getElementById('main-sidebar');
       const backdrop = document.getElementById('sidebar-backdrop');
@@ -265,7 +271,6 @@
       }
     };
 
-    // 💡 အင်တာနက် အခြေအနေ (Icon သီးသန့် ပြသခြင်း)
     function updateNetworkStatus() {
       const el = document.getElementById('header-network-status');
       if (!el) return;
@@ -281,7 +286,6 @@
       }
     }
 
-    // 💡 ရက်စွဲနှင့် အချိန် နာရီ: 16 Oct 26 | Fri | 8:35 pm
     function startHeaderClock() {
       function updateClock() {
         const datetimeEl = document.getElementById('header-live-datetime');
@@ -309,7 +313,6 @@
       setInterval(updateClock, 1000);
     }
 
-    // PWA Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('sw.js').then(function(reg) {
@@ -320,7 +323,6 @@
       });
     }
 
-    // စတင်ချိန်တွင် ချက်ချင်း Run ခြင်း
     startHeaderClock();
     updateNetworkStatus();
 
